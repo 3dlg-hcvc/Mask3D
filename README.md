@@ -103,6 +103,8 @@ python setup.py install
 
 cd ../../
 pip3 install pytorch-lightning==1.7.2
+
+pip install torchmetrics==0.11.4
 ```
 
 ### Data preprocessing :hammer:
