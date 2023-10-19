@@ -301,16 +301,16 @@ def voxelize(
         coordinates, features = ME.utils.sparse_collate(**input_dict)
         labels = torch.Tensor([])
 
-    if probing:
-        return (
-            NoGpu(
-                coordinates,
-                features,
-                original_labels,
-                inverse_maps,
-            ),
-            labels,
-        )
+    # if probing:
+    #     return (
+    #         NoGpu(
+    #             coordinates,
+    #             features,
+    #             original_labels,
+    #             inverse_maps,
+    #         ),
+    #         labels,
+    #     )
 
     if mode == "test":
         for i in range(len(input_dict["labels"])):

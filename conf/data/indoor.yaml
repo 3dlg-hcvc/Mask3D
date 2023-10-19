@@ -24,19 +24,19 @@ pin_memory: True
 num_workers: 4
 batch_size: 5
 test_batch_size: 1
-cache_data: True
+cache_data: true
 
 # collation
 voxel_size: 0.02
 
 reps_per_epoch: ${general.reps_per_epoch}
 
-cropping: false
-cropping_args:
-  min_points: 30000
-  aspect: 0.8
-  min_crop: 0.5
-  max_crop: 1.0
+# cropping: false
+#cropping_args:
+#  min_points: 30000
+#  aspect: 0.8
+#  min_crop: 0.5
+#  max_crop: 1.0
 
 crop_min_size: 20000
 crop_length: 6.0

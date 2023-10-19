@@ -1,6 +1,6 @@
 import re
 from pathlib import Path
-from hashlib import md5
+# from hashlib import md5
 from natsort import natsorted
 
 import numpy as np
