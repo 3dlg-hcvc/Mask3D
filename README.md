@@ -76,6 +76,10 @@ conda env create -f environment.yml
 
 conda activate mask3d_cuda113
 
+pip install pyyaml==5.4.1 --no-build-isolation
+
+pip install pycocotools
+
 pip3 install torch==1.12.1+cu113 torchvision==0.13.1+cu113 --extra-index-url https://download.pytorch.org/whl/cu113
 pip3 install torch-scatter -f https://data.pyg.org/whl/torch-1.12.1+cu113.html
 pip3 install 'git+https://github.com/facebookresearch/detectron2.git@710e7795d0eeadf9def0e7ef957eea13532e34cf' --no-deps

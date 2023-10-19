@@ -41,6 +41,7 @@ dependencies:
   - pyopenssl=23.0.0=py310h06a4308_0
   - pysocks=1.7.1=py310h06a4308_0
   - python=3.10.9=h7a1cb2a_0
+  - cython=0.29.36
   - readline=8.2=h5eee18b_0
   - requests=2.28.1=py310h06a4308_1
   - ruamel.yaml=0.17.21=py310h5eee18b_0
@@ -157,7 +158,6 @@ dependencies:
       - pure-eval==0.2.2
       - pyasn1==0.5.0
       - pyasn1-modules==0.3.0
-      - pycocotools==2.0.4
       - pydantic==1.10.7
       - pydeprecate==0.3.2
       - pygments==2.15.1
@@ -171,7 +171,6 @@ dependencies:
       - pytz==2023.3
       - pyviz3d==0.2.28
       - pywavelets==1.4.1
-      - pyyaml==5.4.1
       - pyzmq==25.0.2
       - qudida==0.0.4
       - regex==2023.3.23
