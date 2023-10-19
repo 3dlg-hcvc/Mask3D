@@ -525,7 +525,7 @@ class DotProdWithIdx_v2(Function):
         _, counts = torch.unique_consecutive(sorted_values, return_counts=True)
         rel_idx_offsets = torch.cumsum(counts, dim=-1)  # [T,]
         rel_idx_offsets = torch.cat(
-            [torch.zeros(1, dtype=torch.long).cuda(), rel_idx_offsets], 0
+            [torch.zeros(1, dtype=torch.long, device="cuda"), rel_idx_offsets], 0
         )  # [T+1,]
         n_max = counts.max()
         T = counts.shape[0]

@@ -20,11 +20,11 @@ add_instance: ${general.add_instance}
 task: ${general.task}
 
 # data loader
-pin_memory: false
+pin_memory: True
 num_workers: 4
 batch_size: 5
 test_batch_size: 1
-cache_data: false
+cache_data: True
 
 # collation
 voxel_size: 0.02

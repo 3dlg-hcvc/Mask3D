@@ -12,12 +12,12 @@ from benchmark.evaluate_semantic_instance import evaluate
 from collections import defaultdict
 from sklearn.cluster import DBSCAN
 from utils.votenet_utils.eval_det import eval_det
-from datasets.scannet200.scannet200_splits import (
-    HEAD_CATS_SCANNET_200,
-    TAIL_CATS_SCANNET_200,
-    COMMON_CATS_SCANNET_200,
-    VALID_CLASS_IDS_200_VALIDATION,
-)
+# from datasets.scannet200.scannet200_splits import (
+#     HEAD_CATS_SCANNET_200,
+#     TAIL_CATS_SCANNET_200,
+#     COMMON_CATS_SCANNET_200,
+#     VALID_CLASS_IDS_200_VALIDATION,
+# )
 
 import hydra
 import MinkowskiEngine as ME
@@ -813,12 +813,6 @@ class InstanceSegmentation(pl.LightningModule):
                 all_pred_scores.append(sort_scores_values)
                 all_heatmaps.append(sorted_heatmap)
 
-        if self.validation_dataset.dataset_name == "scannet200":
-            all_pred_classes[bid][all_pred_classes[bid] == 0] = -1
-            if self.config.data.test_mode != "test":
-                target_full_res[bid]["labels"][
-                    target_full_res[bid]["labels"] == 0
-                ] = -1
 
         for bid in range(len(prediction[self.decoder_id]["pred_masks"])):
             all_pred_classes[
@@ -962,28 +956,14 @@ class InstanceSegmentation(pl.LightningModule):
                     )
 
             if self.config.general.export:
-                if self.validation_dataset.dataset_name == "stpls3d":
-                    scan_id, _, _, crop_id = file_names[bid].split("_")
-                    crop_id = int(crop_id.replace(".txt", ""))
-                    file_name = (
-                        f"{scan_id}_points_GTv3_0{crop_id}_inst_nostuff"
-                    )
 
-                    self.export(
-                        self.preds[file_names[bid]]["pred_masks"],
-                        self.preds[file_names[bid]]["pred_scores"],
-                        self.preds[file_names[bid]]["pred_classes"],
-                        file_name,
-                        self.decoder_id,
-                    )
-                else:
-                    self.export(
-                        self.preds[file_names[bid]]["pred_masks"],
-                        self.preds[file_names[bid]]["pred_scores"],
-                        self.preds[file_names[bid]]["pred_classes"],
-                        file_names[bid],
-                        self.decoder_id,
-                    )
+                self.export(
+                    self.preds[file_names[bid]]["pred_masks"],
+                    self.preds[file_names[bid]]["pred_scores"],
+                    self.preds[file_names[bid]]["pred_classes"],
+                    file_names[bid],
+                    self.decoder_id,
+                )
 
     def eval_instance_epoch_end(self):
         log_prefix = f"val"
@@ -1039,38 +1019,13 @@ class InstanceSegmentation(pl.LightningModule):
             os.makedirs(base_path)
 
         try:
-            if self.validation_dataset.dataset_name == "s3dis":
-                new_preds = {}
-                for key in self.preds.keys():
-                    new_preds[
-                        key.replace(f"Area_{self.config.general.area}_", "")
-                    ] = {
-                        "pred_classes": self.preds[key]["pred_classes"] + 1,
-                        "pred_masks": self.preds[key]["pred_masks"],
-                        "pred_scores": self.preds[key]["pred_scores"],
-                    }
-                mprec, mrec = evaluate(
-                    new_preds, gt_data_path, pred_path, dataset="s3dis"
-                )
-                ap_results[f"{log_prefix}_mean_precision"] = mprec
-                ap_results[f"{log_prefix}_mean_recall"] = mrec
-            elif self.validation_dataset.dataset_name == "stpls3d":
-                new_preds = {}
-                for key in self.preds.keys():
-                    new_preds[key.replace(".txt", "")] = {
-                        "pred_classes": self.preds[key]["pred_classes"],
-                        "pred_masks": self.preds[key]["pred_masks"],
-                        "pred_scores": self.preds[key]["pred_scores"],
-                    }
 
-                evaluate(new_preds, gt_data_path, pred_path, dataset="stpls3d")
-            else:
-                evaluate(
-                    self.preds,
-                    gt_data_path,
-                    pred_path,
-                    dataset=self.validation_dataset.dataset_name,
-                )
+            evaluate(
+                self.preds,
+                gt_data_path,
+                pred_path,
+                dataset=self.validation_dataset.dataset_name,
+            )
             with open(pred_path, "r") as fin:
                 for line_id, line in enumerate(fin):
                     if line_id == 0:
@@ -1078,132 +1033,48 @@ class InstanceSegmentation(pl.LightningModule):
                         continue
                     class_name, _, ap, ap_50, ap_25 = line.strip().split(",")
 
-                    if self.validation_dataset.dataset_name == "scannet200":
-                        if class_name in VALID_CLASS_IDS_200_VALIDATION:
-                            ap_results[
-                                f"{log_prefix}_{class_name}_val_ap"
-                            ] = float(ap)
-                            ap_results[
-                                f"{log_prefix}_{class_name}_val_ap_50"
-                            ] = float(ap_50)
-                            ap_results[
-                                f"{log_prefix}_{class_name}_val_ap_25"
-                            ] = float(ap_25)
 
-                            if class_name in HEAD_CATS_SCANNET_200:
-                                head_results.append(
-                                    np.array(
-                                        (float(ap), float(ap_50), float(ap_25))
-                                    )
-                                )
-                            elif class_name in COMMON_CATS_SCANNET_200:
-                                common_results.append(
-                                    np.array(
-                                        (float(ap), float(ap_50), float(ap_25))
-                                    )
-                                )
-                            elif class_name in TAIL_CATS_SCANNET_200:
-                                tail_results.append(
-                                    np.array(
-                                        (float(ap), float(ap_50), float(ap_25))
-                                    )
-                                )
-                            else:
-                                assert (False, "class not known!")
-                    else:
-                        ap_results[
-                            f"{log_prefix}_{class_name}_val_ap"
-                        ] = float(ap)
-                        ap_results[
-                            f"{log_prefix}_{class_name}_val_ap_50"
-                        ] = float(ap_50)
-                        ap_results[
-                            f"{log_prefix}_{class_name}_val_ap_25"
-                        ] = float(ap_25)
+                    ap_results[
+                        f"{log_prefix}_{class_name}_val_ap"
+                    ] = float(ap)
+                    ap_results[
+                        f"{log_prefix}_{class_name}_val_ap_50"
+                    ] = float(ap_50)
+                    ap_results[
+                        f"{log_prefix}_{class_name}_val_ap_25"
+                    ] = float(ap_25)
 
-            if self.validation_dataset.dataset_name == "scannet200":
-                head_results = np.stack(head_results)
-                common_results = np.stack(common_results)
-                tail_results = np.stack(tail_results)
 
-                mean_tail_results = np.nanmean(tail_results, axis=0)
-                mean_common_results = np.nanmean(common_results, axis=0)
-                mean_head_results = np.nanmean(head_results, axis=0)
+            mean_ap = statistics.mean(
+                [
+                    item
+                    for key, item in ap_results.items()
+                    if key.endswith("val_ap")
+                ]
+            )
+            mean_ap_50 = statistics.mean(
+                [
+                    item
+                    for key, item in ap_results.items()
+                    if key.endswith("val_ap_50")
+                ]
+            )
+            mean_ap_25 = statistics.mean(
+                [
+                    item
+                    for key, item in ap_results.items()
+                    if key.endswith("val_ap_25")
+                ]
+            )
 
-                ap_results[
-                    f"{log_prefix}_mean_tail_ap_25"
-                ] = mean_tail_results[0]
-                ap_results[
-                    f"{log_prefix}_mean_common_ap_25"
-                ] = mean_common_results[0]
-                ap_results[
-                    f"{log_prefix}_mean_head_ap_25"
-                ] = mean_head_results[0]
+            ap_results[f"{log_prefix}_mean_ap"] = mean_ap
+            ap_results[f"{log_prefix}_mean_ap_50"] = mean_ap_50
+            ap_results[f"{log_prefix}_mean_ap_25"] = mean_ap_25
 
-                ap_results[
-                    f"{log_prefix}_mean_tail_ap_50"
-                ] = mean_tail_results[1]
-                ap_results[
-                    f"{log_prefix}_mean_common_ap_50"
-                ] = mean_common_results[1]
-                ap_results[
-                    f"{log_prefix}_mean_head_ap_50"
-                ] = mean_head_results[1]
-
-                ap_results[
-                    f"{log_prefix}_mean_tail_ap_25"
-                ] = mean_tail_results[2]
-                ap_results[
-                    f"{log_prefix}_mean_common_ap_25"
-                ] = mean_common_results[2]
-                ap_results[
-                    f"{log_prefix}_mean_head_ap_25"
-                ] = mean_head_results[2]
-
-                overall_ap_results = np.nanmean(
-                    np.vstack((head_results, common_results, tail_results)),
-                    axis=0,
-                )
-
-                ap_results[f"{log_prefix}_mean_ap"] = overall_ap_results[0]
-                ap_results[f"{log_prefix}_mean_ap_50"] = overall_ap_results[1]
-                ap_results[f"{log_prefix}_mean_ap_25"] = overall_ap_results[2]
-
-                ap_results = {
-                    key: 0.0 if math.isnan(score) else score
-                    for key, score in ap_results.items()
-                }
-            else:
-                mean_ap = statistics.mean(
-                    [
-                        item
-                        for key, item in ap_results.items()
-                        if key.endswith("val_ap")
-                    ]
-                )
-                mean_ap_50 = statistics.mean(
-                    [
-                        item
-                        for key, item in ap_results.items()
-                        if key.endswith("val_ap_50")
-                    ]
-                )
-                mean_ap_25 = statistics.mean(
-                    [
-                        item
-                        for key, item in ap_results.items()
-                        if key.endswith("val_ap_25")
-                    ]
-                )
-
-                ap_results[f"{log_prefix}_mean_ap"] = mean_ap
-                ap_results[f"{log_prefix}_mean_ap_50"] = mean_ap_50
-                ap_results[f"{log_prefix}_mean_ap_25"] = mean_ap_25
-
-                ap_results = {
-                    key: 0.0 if math.isnan(score) else score
-                    for key, score in ap_results.items()
-                }
+            ap_results = {
+                key: 0.0 if math.isnan(score) else score
+                for key, score in ap_results.items()
+            }
         except (IndexError, OSError) as e:
             print("NO SCORES!!!")
             ap_results[f"{log_prefix}_mean_ap"] = 0.0
