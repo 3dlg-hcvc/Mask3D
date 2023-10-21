@@ -9,7 +9,7 @@ from trainer.trainer import InstanceSegmentation, RegularCheckpointing
 # from pytorch_lightning.callbacks import ModelCheckpoint
 from utils.utils import (
     flatten_dict,
-    load_baseline_model,
+    # load_baseline_model,
     load_checkpoint_with_missing_or_exsessive_keys,
     load_backbone_checkpoint_with_missing_or_exsessive_keys,
 )
@@ -39,7 +39,8 @@ def get_parameters(cfg: DictConfig):
         os.makedirs(cfg.general.save_dir)
     else:
         print("EXPERIMENT ALREADY EXIST")
-        cfg["trainer"]["resume_from_checkpoint"] = f"{cfg.general.save_dir}/last-epoch.ckpt"
+        if os.path.exists(f"{cfg.general.save_dir}/last-epoch.ckpt"):
+            cfg["trainer"]["resume_from_checkpoint"] = f"{cfg.general.save_dir}/last-epoch.ckpt"
 
     for log in cfg.logging:
         print(log)
@@ -51,7 +52,6 @@ def get_parameters(cfg: DictConfig):
         cfg, model = load_backbone_checkpoint_with_missing_or_exsessive_keys(cfg, model)
     if cfg.general.checkpoint is not None:
         cfg, model = load_checkpoint_with_missing_or_exsessive_keys(cfg, model)
-
     logger.info(flatten_dict(OmegaConf.to_container(cfg, resolve=True)))
     return cfg, model, loggers
 

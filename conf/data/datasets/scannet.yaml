@@ -6,7 +6,6 @@ train_dataset:
   image_augmentations_path: conf/augmentation/albumentations_aug.yaml
   volume_augmentations_path: conf/augmentation/volumentations_aug.yaml
   label_db_filepath: data/processed/scannet/label_database.yaml
-  color_mean_std: data/processed/scannet/color_mean_std.yaml
   # data_percent: 1.0
   mode: ${data.train_mode}
   ignore_label: ${data.ignore_label}
@@ -39,7 +38,6 @@ validation_dataset:
   image_augmentations_path: null
   volume_augmentations_path: null
   label_db_filepath: data/processed/scannet/label_database.yaml
-  color_mean_std: data/processed/scannet/color_mean_std.yaml
   # data_percent: 1.0
   mode: ${data.validation_mode}
   ignore_label: ${data.ignore_label}
@@ -62,7 +60,6 @@ test_dataset:
   image_augmentations_path: null
   volume_augmentations_path: null
   label_db_filepath: data/processed/scannet/label_database.yaml
-  color_mean_std: data/processed/scannet/color_mean_std.yaml
   # data_percent: 1.0
   mode: ${data.test_mode}
   ignore_label: ${data.ignore_label}

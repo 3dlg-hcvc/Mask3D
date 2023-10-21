@@ -14,15 +14,13 @@ from datasets.scannet200.scannet200_constants import (
     SCANNET_COLOR_MAP_200,
     CLASS_LABELS_200,
 )
-
-
 class ScannetPreprocessing(BasePreprocessing):
     def __init__(
         self,
-        data_dir: str = "./data/raw/scannet/scannet",
+        data_dir: str = "./datasets/scannetv2",
         save_dir: str = "./data/processed/scannet",
         modes: tuple = ("train", "validation", "test"),
-        n_jobs: int = -1,
+        n_jobs: int = 1,
         git_repo: str = "./data/raw/scannet/ScanNet",
         scannet200: bool = False,
     ):
@@ -30,21 +28,19 @@ class ScannetPreprocessing(BasePreprocessing):
 
         self.scannet200 = scannet200
 
-        if self.scannet200:
-            self.labels_pd = pd.read_csv(
-                self.data_dir / "scannetv2-labels.combined.tsv",
-                sep="\t",
-                header=0,
-            )
+        # if self.scannet200:
+        #     self.labels_pd = pd.read_csv(
+        #         self.data_dir / "scannetv2-labels.combined.tsv",
+        #         sep="\t",
+        #         header=0,
+        #     )
 
         git_repo = Path(git_repo)
         self.create_label_database(git_repo)
         for mode in self.modes:
             trainval_split_dir = git_repo / "Tasks" / "Benchmark"
             scannet_special_mode = "val" if mode == "validation" else mode
-            with open(
-                trainval_split_dir / (f"scannetv2_{scannet_special_mode}.txt")
-            ) as f:
+            with open(trainval_split_dir / (f"scannetv2_{scannet_special_mode}.txt")) as f:
                 # -1 because the last one is always empty
                 split_file = f.read().split("\n")[:-1]
 
@@ -60,59 +56,57 @@ class ScannetPreprocessing(BasePreprocessing):
             self.files[mode] = natsorted(filepaths)
 
     def create_label_database(self, git_repo):
-        if self.scannet200:
-            label_database = {}
-            for row_id, class_id in enumerate(VALID_CLASS_IDS_200):
-                label_database[class_id] = {
-                    "color": SCANNET_COLOR_MAP_200[class_id],
-                    "name": CLASS_LABELS_200[row_id],
-                    "validation": True,
-                }
-            self._save_yaml(
-                self.save_dir / "label_database.yaml", label_database
-            )
-            return label_database
-        else:
-            if (self.save_dir / "label_database.yaml").exists():
-                return self._load_yaml(self.save_dir / "label_database.yaml")
-            df = pd.read_csv(
-                self.data_dir / "scannetv2-labels.combined.tsv", sep="\t"
-            )
-            df = (
-                df[~df[["nyu40class", "nyu40id"]].duplicated()][
-                    ["nyu40class", "nyu40id"]
-                ]
-                .set_index("nyu40id")
-                .sort_index()[["nyu40class"]]
-                .rename(columns={"nyu40class": "name"})
-                .replace(" ", "_", regex=True)
-            )
-            df = pd.DataFrame([{"name": "empty"}]).append(df)
-            df["validation"] = False
+        # if self.scannet200:
+        #     label_database = {}
+        #     for row_id, class_id in enumerate(VALID_CLASS_IDS_200):
+        #         label_database[class_id] = {
+        #             "color": SCANNET_COLOR_MAP_200[class_id],
+        #             "name": CLASS_LABELS_200[row_id],
+        #             "validation": True,
+        #         }
+        #     self._save_yaml(
+        #         self.save_dir / "label_database.yaml", label_database
+        #     )
+        #     return label_database
+        # else:
+        # if (self.save_dir / "label_database.yaml").exists():
+        #     return self._load_yaml(self.save_dir / "label_database.yaml")
+        df = pd.read_csv(self.data_dir / "scannet-labels.combined.tsv", sep="\t")
+        df = (
+            df[~df[["nyu40class", "nyu40id"]].duplicated()][
+                ["nyu40class", "nyu40id"]
+            ]
+            .set_index("nyu40id")
+            .sort_index()[["nyu40class"]]
+            .rename(columns={"nyu40class": "name"})
+            .replace(" ", "_", regex=True)
+        )
+        df = pd.DataFrame([{"name": "empty"}]).append(df)
+        df["validation"] = False
 
-            with open(
-                git_repo
-                / "Tasks"
-                / "Benchmark"
-                / "classes_SemVoxLabel-nyu40id.txt"
-            ) as f:
-                for_validation = f.read().split("\n")
-            for category in for_validation:
-                index = int(re.split(" +", category)[0])
-                df.loc[index, "validation"] = True
+        with open(
+            git_repo
+            / "Tasks"
+            / "Benchmark"
+            / "classes_SemVoxLabel-nyu40id.txt"
+        ) as f:
+            for_validation = f.read().split("\n")
+        for category in for_validation:
+            index = int(re.split(" +", category)[0])
+            df.loc[index, "validation"] = True
 
-            # doing this hack because otherwise I will have to install imageio
-            with open(git_repo / "BenchmarkScripts" / "util.py") as f:
-                util = f.read()
-                color_list = eval("[" + util.split("return [\n")[1])
+        # doing this hack because otherwise I will have to install imageio
+        with open(git_repo / "BenchmarkScripts" / "util.py") as f:
+            util = f.read()
+            color_list = eval("[" + util.split("return [\n")[1])
 
-            df["color"] = color_list
+        df["color"] = color_list
 
-            label_database = df.to_dict("index")
-            self._save_yaml(
-                self.save_dir / "label_database.yaml", label_database
-            )
-            return label_database
+        label_database = df.to_dict("index")
+        self._save_yaml(
+            self.save_dir / "label_database.yaml", label_database
+        )
+        return label_database
 
     def process_file(self, filepath, mode):
         """process_file.
@@ -142,9 +136,7 @@ class ScannetPreprocessing(BasePreprocessing):
 
         if mode in ["train", "validation"]:
             # getting scene information
-            description_filepath = Path(
-                filepath
-            ).parent / filepath.name.replace("_vh_clean_2.ply", ".txt")
+            description_filepath = Path(filepath).parent / filepath.name.replace("_vh_clean_2.ply", ".txt")
             with open(description_filepath) as f:
                 scene_type = f.read().split("\n")[:-1]
             scene_type = scene_type[-1].split(" = ")[1]
@@ -169,13 +161,9 @@ class ScannetPreprocessing(BasePreprocessing):
             points = np.hstack((points, segment_ids[..., None]))
 
             # reading labels file
-            label_filepath = filepath.parent / filepath.name.replace(
-                ".ply", ".labels.ply"
-            )
+            label_filepath = filepath.parent / filepath.name.replace(".ply", ".labels.ply")
             filebase["raw_label_filepath"] = label_filepath
-            label_coords, label_colors, labels = load_ply_with_normals(
-                label_filepath
-            )
+            label_coords, label_colors, labels = load_ply_with_normals(label_filepath)
             if not np.allclose(coords, label_coords):
                 raise ValueError("files doesn't have same coordinates")
 
@@ -188,36 +176,30 @@ class ScannetPreprocessing(BasePreprocessing):
                 occupied_indices = np.isin(segments, segments_occupied)
                 labels[occupied_indices, 1] = instance["id"]
 
-                if self.scannet200:
-                    label200 = instance["label"]
-                    # Map the category name to id
-                    label_ids = self.labels_pd[
-                        self.labels_pd["raw_category"] == label200
-                    ]["id"]
-                    label_id = (
-                        int(label_ids.iloc[0]) if len(label_ids) > 0 else 0
-                    )
-                    labels[occupied_indices, 0] = label_id
+                # if self.scannet200:
+                #     label200 = instance["label"]
+                #     # Map the category name to id
+                #     label_ids = self.labels_pd[
+                #         self.labels_pd["raw_category"] == label200
+                #     ]["id"]
+                #     label_id = (
+                #         int(label_ids.iloc[0]) if len(label_ids) > 0 else 0
+                #     )
+                #     labels[occupied_indices, 0] = label_id
             points = np.hstack((points, labels))
 
             # gt_data = (points[:, -2] + 1) * 1000 + points[:, -1] + 1
             gt_data = points[:, -2] * 1000 + points[:, -1] + 1
         else:
             segments_test = "../../data/raw/scannet_test_segments"
-            segment_indexes_filepath = filepath.name.replace(
-                ".ply", ".0.010000.segs.json"
-            )
-            segments = self._read_json(
-                f"{segments_test}/{segment_indexes_filepath}"
-            )
+            segment_indexes_filepath = filepath.name.replace(".ply", ".0.010000.segs.json")
+            segments = self._read_json(f"{segments_test}/{segment_indexes_filepath}")
             segments = np.array(segments["segIndices"])
             # add segment id as additional feature
             segment_ids = np.unique(segments, return_inverse=True)[1]
             points = np.hstack((points, segment_ids[..., None]))
 
-        processed_filepath = (
-            self.save_dir / mode / f"{scene:04}_{sub_scene:02}.npy"
-        )
+        processed_filepath = (self.save_dir / mode / f"{scene:04}_{sub_scene:02}.npy")
         if not processed_filepath.parent.exists():
             processed_filepath.parent.mkdir(parents=True, exist_ok=True)
         np.save(processed_filepath, points.astype(np.float32))
@@ -249,10 +231,7 @@ class ScannetPreprocessing(BasePreprocessing):
         ]
         return filebase
 
-    def compute_color_mean_std(
-        self,
-        train_database_path: str = "./data/processed/scannet/train_database.yaml",
-    ):
+    def compute_color_mean_std(self, train_database_path: str = "./data/processed/scannet/train_database.yaml"):
         train_database = self._load_yaml(train_database_path)
         color_mean, color_std = [], []
         for sample in train_database:
@@ -269,23 +248,23 @@ class ScannetPreprocessing(BasePreprocessing):
 
     @logger.catch
     def fix_bugs_in_labels(self):
-        if not self.scannet200:
-            logger.add(self.save_dir / "fixed_bugs_in_labels.log")
-            found_wrong_labels = {
-                tuple([270, 0]): 50,
-                tuple([270, 2]): 50,
-                tuple([384, 0]): 149,
-            }
-            for scene, wrong_label in found_wrong_labels.items():
-                scene, sub_scene = scene
-                bug_file = (
-                    self.save_dir / "train" / f"{scene:04}_{sub_scene:02}.npy"
-                )
-                points = np.load(bug_file)
-                bug_mask = points[:, -1] != wrong_label
-                points = points[bug_mask]
-                np.save(bug_file, points)
-                logger.info(f"Fixed {bug_file}")
+        # if not self.scannet200:
+        logger.add(self.save_dir / "fixed_bugs_in_labels.log")
+        found_wrong_labels = {
+            tuple([270, 0]): 50,
+            tuple([270, 2]): 50,
+            tuple([384, 0]): 149,
+        }
+        for scene, wrong_label in found_wrong_labels.items():
+            scene, sub_scene = scene
+            bug_file = (
+                self.save_dir / "train" / f"{scene:04}_{sub_scene:02}.npy"
+            )
+            points = np.load(bug_file)
+            bug_mask = points[:, -1] != wrong_label
+            points = points[bug_mask]
+            np.save(bug_file, points)
+            logger.info(f"Fixed {bug_file}")
 
     def _parse_scene_subscene(self, name):
         scene_match = re.match(r"scene(\d{4})_(\d{2})", name)

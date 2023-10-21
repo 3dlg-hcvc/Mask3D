@@ -138,7 +138,7 @@ dependencies:
       - omegaconf==2.0.6
       - open3d==0.17.0
       - opencv-python-headless==4.7.0.72
-      - pandas==2.0.0
+      - pandas==1.5.3
       - parso==0.8.3
       - pathspec==0.11.1
       - pathtools==0.1.2

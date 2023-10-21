@@ -10,7 +10,7 @@ from random import choice
 
 # import numpy
 import torch
-from datasets.random_cuboid import RandomCuboid
+# from datasets.random_cuboid import RandomCuboid
 
 import albumentations as A
 import numpy as np
@@ -20,10 +20,10 @@ import yaml
 
 # from yaml import CLoader as Loader
 from torch.utils.data import Dataset
-from datasets.scannet200.scannet200_constants import (
-    #SCANNET_COLOR_MAP_200,
-    SCANNET_COLOR_MAP_20,
-)
+# from datasets.scannet200.scannet200_constants import (
+#     SCANNET_COLOR_MAP_200,
+#     SCANNET_COLOR_MAP_20,
+# )
 
 logger = logging.getLogger(__name__)
 
@@ -84,15 +84,14 @@ class SemanticSegmentationDataset(Dataset):
         self.is_elastic_distortion = is_elastic_distortion
         # self.color_drop = color_drop
 
-        if self.dataset_name == "scannet":
-            self.color_map = SCANNET_COLOR_MAP_20
-            self.color_map[255] = (255, 255, 255)
-        else:
-            assert False, "dataset not known"
+        # if self.dataset_name == "scannet":
+        #     self.color_map = SCANNET_COLOR_MAP_20
+        #     self.color_map[255] = (255, 255, 255)
+        # else:
+        #     assert False, "dataset not known"
 
-        self.task = task
+        # self.task = task
 
-        self.filter_out_classes = filter_out_classes
         self.label_offset = label_offset
 
         # self.area = area
@@ -105,20 +104,15 @@ class SemanticSegmentationDataset(Dataset):
         # self.is_tta = is_tta
         # self.on_crops = on_crops
 
-        self.crop_min_size = crop_min_size
-        self.crop_length = crop_length
-
-        self.version1 = cropping_v1
-
-        self.random_cuboid = RandomCuboid(self.crop_min_size, crop_length=self.crop_length, version1=self.version1)
+        # self.random_cuboid = RandomCuboid(crop_min_size, crop_length=crop_length, version1=cropping_v1)
 
         self.mode = mode
-        self.data_dir = data_dir
         # self.add_unlabeled_pc = add_unlabeled_pc
         # if add_unlabeled_pc:
         #     self.other_database = self._load_yaml(Path(data_dir).parent / "matterport" / "train_database.yaml")
         if type(data_dir) == str:
-            self.data_dir = [self.data_dir]
+            data_dir = [data_dir]
+        self.data_dir = data_dir
         self.ignore_label = ignore_label
         self.add_colors = add_colors
         self.add_normals = add_normals
@@ -165,13 +159,9 @@ class SemanticSegmentationDataset(Dataset):
         #         "color_mean_std.yaml", f"Area_{self.area}_color_mean_std.yaml"
         #     )
 
-        if Path(str(color_mean_std)).exists():
-            color_mean_std = self._load_yaml(color_mean_std)
-            color_mean, color_std = (tuple(color_mean_std["mean"]), tuple(color_mean_std["std"]))
-        elif len(color_mean_std[0]) == 3 and len(color_mean_std[1]) == 3:
-            color_mean, color_std = color_mean_std[0], color_mean_std[1]
-        else:
-            logger.error("pass mean and std as tuple of tuples, or as an .yaml file")
+
+        color_mean, color_std = color_mean_std[0], color_mean_std[1]
+
 
         # augmentations
         self.volume_augmentations = V.NoOp()
@@ -187,112 +177,63 @@ class SemanticSegmentationDataset(Dataset):
         self.cache_data = cache_data
         # new_data = []
         if self.cache_data:
-            new_data = []
+            # new_data = []
             for i in range(len(self._data)):
-                self._data[i]["data"] = np.load(
-                    self.data[i]["filepath"].replace("../../", "")
-                )
-                # if self.on_crops:
-                #     if self.eval_inner_core == -1:
-                #         for block_id, block in enumerate(
-                #             self.splitPointCloud(self._data[i]["data"])
-                #         ):
-                #             if len(block) > 10000:
-                #                 new_data.append(
-                #                     {
-                #                         "instance_gt_filepath": self._data[i]["instance_gt_filepath"][block_id]
-                #                         if len(self._data[i]["instance_gt_filepath"]) > 0
-                #                         else list(),
-                #                         "scene": f"{self._data[i]['scene'].replace('.txt', '')}_{block_id}.txt",
-                #                         "raw_filepath": f"{self.data[i]['filepath'].replace('.npy', '')}_{block_id}",
-                #                         "data": block,
-                #                     }
-                #                 )
-                #             else:
-                #                 assert False
-                #     else:
-                #         conds_inner, blocks_outer = self.splitPointCloud(
-                #             self._data[i]["data"],
-                #             size=self.crop_length,
-                #             inner_core=self.eval_inner_core,
-                #         )
-                #
-                #         for block_id in range(len(conds_inner)):
-                #             cond_inner = conds_inner[block_id]
-                #             block_outer = blocks_outer[block_id]
-                #
-                #             if cond_inner.sum() > 10000:
-                #                 new_data.append(
-                #                     {
-                #                         "instance_gt_filepath": self._data[i]["instance_gt_filepath"][block_id]
-                #                         if len(self._data[i]["instance_gt_filepath"]) > 0
-                #                         else list(),
-                #                         "scene": f"{self._data[i]['scene'].replace('.txt', '')}_{block_id}.txt",
-                #                         "raw_filepath": f"{self.data[i]['filepath'].replace('.npy', '')}_{block_id}",
-                #                         "data": block_outer,
-                #                         "cond_inner": cond_inner,
-                #                     }
-                #                 )
-                #             else:
-                #                 assert False
+                self._data[i]["data"] = np.load(self.data[i]["filepath"].replace("../../", ""))
 
-            # if self.on_crops:
-            #     self._data = new_data
-            #     # new_data.append(np.load(self.data[i]["filepath"].replace("../../", "")))
-            # self._data = new_data
 
-    def splitPointCloud(self, cloud, size=50.0, stride=50, inner_core=-1):
-        if inner_core == -1:
-            limitMax = np.amax(cloud[:, 0:3], axis=0)
-            width = int(np.ceil((limitMax[0] - size) / stride)) + 1
-            depth = int(np.ceil((limitMax[1] - size) / stride)) + 1
-            cells = [
-                (x * stride, y * stride)
-                for x in range(width)
-                for y in range(depth)
-            ]
-            blocks = []
-            for (x, y) in cells:
-                xcond = (cloud[:, 0] <= x + size) & (cloud[:, 0] >= x)
-                ycond = (cloud[:, 1] <= y + size) & (cloud[:, 1] >= y)
-                cond = xcond & ycond
-                block = cloud[cond, :]
-                blocks.append(block)
-            return blocks
-        else:
-            limitMax = np.amax(cloud[:, 0:3], axis=0)
-            width = int(np.ceil((limitMax[0] - inner_core) / stride)) + 1
-            depth = int(np.ceil((limitMax[1] - inner_core) / stride)) + 1
-            cells = [
-                (x * stride, y * stride)
-                for x in range(width)
-                for y in range(depth)
-            ]
-            blocks_outer = []
-            conds_inner = []
-            for (x, y) in cells:
-                xcond_outer = (cloud[:, 0] <= x + inner_core / 2.0 + size / 2) & (cloud[:, 0] >= x + inner_core / 2.0 - size / 2)
-                ycond_outer = (cloud[:, 1] <= y + inner_core / 2.0 + size / 2) & (cloud[:, 1] >= y + inner_core / 2.0 - size / 2)
+    # def splitPointCloud(self, cloud, size=50.0, stride=50, inner_core=-1):
+    #     if inner_core == -1:
+    #         limitMax = np.amax(cloud[:, 0:3], axis=0)
+    #         width = int(np.ceil((limitMax[0] - size) / stride)) + 1
+    #         depth = int(np.ceil((limitMax[1] - size) / stride)) + 1
+    #         cells = [
+    #             (x * stride, y * stride)
+    #             for x in range(width)
+    #             for y in range(depth)
+    #         ]
+    #         blocks = []
+    #         for (x, y) in cells:
+    #             xcond = (cloud[:, 0] <= x + size) & (cloud[:, 0] >= x)
+    #             ycond = (cloud[:, 1] <= y + size) & (cloud[:, 1] >= y)
+    #             cond = xcond & ycond
+    #             block = cloud[cond, :]
+    #             blocks.append(block)
+    #         return blocks
+    #     else:
+    #         limitMax = np.amax(cloud[:, 0:3], axis=0)
+    #         width = int(np.ceil((limitMax[0] - inner_core) / stride)) + 1
+    #         depth = int(np.ceil((limitMax[1] - inner_core) / stride)) + 1
+    #         cells = [
+    #             (x * stride, y * stride)
+    #             for x in range(width)
+    #             for y in range(depth)
+    #         ]
+    #         blocks_outer = []
+    #         conds_inner = []
+    #         for (x, y) in cells:
+    #             xcond_outer = (cloud[:, 0] <= x + inner_core / 2.0 + size / 2) & (cloud[:, 0] >= x + inner_core / 2.0 - size / 2)
+    #             ycond_outer = (cloud[:, 1] <= y + inner_core / 2.0 + size / 2) & (cloud[:, 1] >= y + inner_core / 2.0 - size / 2)
+    #
+    #             cond_outer = xcond_outer & ycond_outer
+    #             block_outer = cloud[cond_outer, :]
+    #
+    #             xcond_inner = (block_outer[:, 0] <= x + inner_core) & (block_outer[:, 0] >= x)
+    #             ycond_inner = (block_outer[:, 1] <= y + inner_core) & (block_outer[:, 1] >= y)
+    #
+    #             cond_inner = xcond_inner & ycond_inner
+    #
+    #             conds_inner.append(cond_inner)
+    #             blocks_outer.append(block_outer)
+    #         return conds_inner, blocks_outer
 
-                cond_outer = xcond_outer & ycond_outer
-                block_outer = cloud[cond_outer, :]
-
-                xcond_inner = (block_outer[:, 0] <= x + inner_core) & (block_outer[:, 0] >= x)
-                ycond_inner = (block_outer[:, 1] <= y + inner_core) & (block_outer[:, 1] >= y)
-
-                cond_inner = xcond_inner & ycond_inner
-
-                conds_inner.append(cond_inner)
-                blocks_outer.append(block_outer)
-            return conds_inner, blocks_outer
-
-    def map2color(self, labels):
-        output_colors = list()
-
-        for label in labels:
-            output_colors.append(self.color_map[label])
-
-        return torch.tensor(output_colors)
+    # def map2color(self, labels):
+    #     output_colors = list()
+    #
+    #     for label in labels:
+    #         output_colors.append(self.color_map[label])
+    #
+    #     return torch.tensor(output_colors)
 
     def __len__(self):
         # if self.is_tta:
