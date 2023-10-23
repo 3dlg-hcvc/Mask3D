@@ -26,21 +26,17 @@
 # example usage: evaluate_semantic_instance.py --scan_path [path to scan data] --output_file [output file]
 
 # python imports
-import math
+# import math
 import os, sys, argparse
-import inspect
+# import inspect
 from copy import deepcopy
 from uuid import uuid4
 
-import torch
+# import torch
 
-try:
-    import numpy as np
-except:
-    print("Failed to import numpy package.")
-    sys.exit(-1)
+import numpy as np
 
-from scipy import stats
+# from scipy import stats
 
 # currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 # parentdir = os.path.dirname(currentdir)
@@ -78,9 +74,7 @@ CLASS_LABELS = [
     "bathtub",
     "otherfurniture",
 ]
-VALID_CLASS_IDS = np.array(
-    [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 24, 28, 33, 34, 36, 39]
-)
+VALID_CLASS_IDS = np.array([3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 24, 28, 33, 34, 36, 39])
 ID_TO_LABEL = {}
 LABEL_TO_ID = {}
 for i in range(len(VALID_CLASS_IDS)):
@@ -333,10 +327,13 @@ def make_pred_info(pred: dict):
 
 def assign_instances_for_scan(pred: dict, gt_file: str):
     pred_info = make_pred_info(pred)
+    # if not is_cached:
     try:
         gt_ids = util_3d.load_ids(gt_file)
     except Exception as e:
         util.print_error("unable to load " + gt_file + ": " + str(e))
+    # else:
+    #     gt_ids = cached_data
 
     # get gt instances
     gt_instances = util_3d.get_instances(
@@ -458,632 +455,33 @@ def write_result_file(avgs, filename):
             )
 
 
-def evaluate(
-    preds: dict, gt_path: str, output_file: str, dataset: str = "scannet"
-):
+def evaluate(preds: dict, gt_path: str, output_file: str, dataset: str):
     global CLASS_LABELS
     global VALID_CLASS_IDS
     global ID_TO_LABEL
     global LABEL_TO_ID
     global opt
 
-    if dataset == "stpls3d":
-        # global CLASS_LABELS
-        # global VALID_CLASS_IDS
-        # global ID_TO_LABEL
-        # global LABEL_TO_ID
 
-        opt["min_region_sizes"] = np.array([10])
+    if dataset == "opmotion":
+        CLASS_LABELS = ["drawer", "door", "lid", "base"]
+        VALID_CLASS_IDS = [0, 1, 2, 3]
 
-        CLASS_LABELS = [
-            "Build",
-            "LowVeg",
-            "MediumVeg",
-            "HighVeg",
-            "Vehicle",
-            "Truck",
-            "Aircraft",
-            "MilitaryVeh",
-            "Bike",
-            "Motorcycle",
-            "LightPole",
-            "StreetSign",
-            "Clutter",
-            "Fence",
-        ]
-        VALID_CLASS_IDS = np.array(
-            [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
-        )
-
-        ID_TO_LABEL = {}
-        LABEL_TO_ID = {}
         for i in range(len(VALID_CLASS_IDS)):
             LABEL_TO_ID[CLASS_LABELS[i]] = VALID_CLASS_IDS[i]
             ID_TO_LABEL[VALID_CLASS_IDS[i]] = CLASS_LABELS[i]
-
-    if dataset == "s3dis":
-        # global CLASS_LABELS
-        # global VALID_CLASS_IDS
-        # global ID_TO_LABEL
-        # global LABEL_TO_ID
-
-        CLASS_LABELS = [
-            "ceiling",
-            "floor",
-            "wall",
-            "beam",
-            "column",
-            "window",
-            "door",
-            "table",
-            "chair",
-            "sofa",
-            "bookcase",
-            "board",
-            "clutter",
-        ]
-        VALID_CLASS_IDS = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
-        ID_TO_LABEL = {}
-        LABEL_TO_ID = {}
-        for i in range(len(VALID_CLASS_IDS)):
-            LABEL_TO_ID[CLASS_LABELS[i]] = VALID_CLASS_IDS[i]
-            ID_TO_LABEL[VALID_CLASS_IDS[i]] = CLASS_LABELS[i]
-
-    if dataset == "scannet200":
-        CLASS_LABELS = (
-            "chair",
-            "table",
-            "door",
-            "couch",
-            "cabinet",
-            "shelf",
-            "desk",
-            "office chair",
-            "bed",
-            "pillow",
-            "sink",
-            "picture",
-            "window",
-            "toilet",
-            "bookshelf",
-            "monitor",
-            "curtain",
-            "book",
-            "armchair",
-            "coffee table",
-            "box",
-            "refrigerator",
-            "lamp",
-            "kitchen cabinet",
-            "towel",
-            "clothes",
-            "tv",
-            "nightstand",
-            "counter",
-            "dresser",
-            "stool",
-            "cushion",
-            "plant",
-            "ceiling",
-            "bathtub",
-            "end table",
-            "dining table",
-            "keyboard",
-            "bag",
-            "backpack",
-            "toilet paper",
-            "printer",
-            "tv stand",
-            "whiteboard",
-            "blanket",
-            "shower curtain",
-            "trash can",
-            "closet",
-            "stairs",
-            "microwave",
-            "stove",
-            "shoe",
-            "computer tower",
-            "bottle",
-            "bin",
-            "ottoman",
-            "bench",
-            "board",
-            "washing machine",
-            "mirror",
-            "copier",
-            "basket",
-            "sofa chair",
-            "file cabinet",
-            "fan",
-            "laptop",
-            "shower",
-            "paper",
-            "person",
-            "paper towel dispenser",
-            "oven",
-            "blinds",
-            "rack",
-            "plate",
-            "blackboard",
-            "piano",
-            "suitcase",
-            "rail",
-            "radiator",
-            "recycling bin",
-            "container",
-            "wardrobe",
-            "soap dispenser",
-            "telephone",
-            "bucket",
-            "clock",
-            "stand",
-            "light",
-            "laundry basket",
-            "pipe",
-            "clothes dryer",
-            "guitar",
-            "toilet paper holder",
-            "seat",
-            "speaker",
-            "column",
-            "bicycle",
-            "ladder",
-            "bathroom stall",
-            "shower wall",
-            "cup",
-            "jacket",
-            "storage bin",
-            "coffee maker",
-            "dishwasher",
-            "paper towel roll",
-            "machine",
-            "mat",
-            "windowsill",
-            "bar",
-            "toaster",
-            "bulletin board",
-            "ironing board",
-            "fireplace",
-            "soap dish",
-            "kitchen counter",
-            "doorframe",
-            "toilet paper dispenser",
-            "mini fridge",
-            "fire extinguisher",
-            "ball",
-            "hat",
-            "shower curtain rod",
-            "water cooler",
-            "paper cutter",
-            "tray",
-            "shower door",
-            "pillar",
-            "ledge",
-            "toaster oven",
-            "mouse",
-            "toilet seat cover dispenser",
-            "furniture",
-            "cart",
-            "storage container",
-            "scale",
-            "tissue box",
-            "light switch",
-            "crate",
-            "power outlet",
-            "decoration",
-            "sign",
-            "projector",
-            "closet door",
-            "vacuum cleaner",
-            "candle",
-            "plunger",
-            "stuffed animal",
-            "headphones",
-            "dish rack",
-            "broom",
-            "guitar case",
-            "range hood",
-            "dustpan",
-            "hair dryer",
-            "water bottle",
-            "handicap bar",
-            "purse",
-            "vent",
-            "shower floor",
-            "water pitcher",
-            "mailbox",
-            "bowl",
-            "paper bag",
-            "alarm clock",
-            "music stand",
-            "projector screen",
-            "divider",
-            "laundry detergent",
-            "bathroom counter",
-            "object",
-            "bathroom vanity",
-            "closet wall",
-            "laundry hamper",
-            "bathroom stall door",
-            "ceiling light",
-            "trash bin",
-            "dumbbell",
-            "stair rail",
-            "tube",
-            "bathroom cabinet",
-            "cd case",
-            "closet rod",
-            "coffee kettle",
-            "structure",
-            "shower head",
-            "keyboard piano",
-            "case of water bottles",
-            "coat rack",
-            "storage organizer",
-            "folded chair",
-            "fire alarm",
-            "power strip",
-            "calendar",
-            "poster",
-            "potted plant",
-            "luggage",
-            "mattress",
-        )
-
-        VALID_CLASS_IDS = np.array(
-            (
-                2,
-                4,
-                5,
-                6,
-                7,
-                8,
-                9,
-                10,
-                11,
-                13,
-                14,
-                15,
-                16,
-                17,
-                18,
-                19,
-                21,
-                22,
-                23,
-                24,
-                26,
-                27,
-                28,
-                29,
-                31,
-                32,
-                33,
-                34,
-                35,
-                36,
-                38,
-                39,
-                40,
-                41,
-                42,
-                44,
-                45,
-                46,
-                47,
-                48,
-                49,
-                50,
-                51,
-                52,
-                54,
-                55,
-                56,
-                57,
-                58,
-                59,
-                62,
-                63,
-                64,
-                65,
-                66,
-                67,
-                68,
-                69,
-                70,
-                71,
-                72,
-                73,
-                74,
-                75,
-                76,
-                77,
-                78,
-                79,
-                80,
-                82,
-                84,
-                86,
-                87,
-                88,
-                89,
-                90,
-                93,
-                95,
-                96,
-                97,
-                98,
-                99,
-                100,
-                101,
-                102,
-                103,
-                104,
-                105,
-                106,
-                107,
-                110,
-                112,
-                115,
-                116,
-                118,
-                120,
-                121,
-                122,
-                125,
-                128,
-                130,
-                131,
-                132,
-                134,
-                136,
-                138,
-                139,
-                140,
-                141,
-                145,
-                148,
-                154,
-                155,
-                156,
-                157,
-                159,
-                161,
-                163,
-                165,
-                166,
-                168,
-                169,
-                170,
-                177,
-                180,
-                185,
-                188,
-                191,
-                193,
-                195,
-                202,
-                208,
-                213,
-                214,
-                221,
-                229,
-                230,
-                232,
-                233,
-                242,
-                250,
-                261,
-                264,
-                276,
-                283,
-                286,
-                300,
-                304,
-                312,
-                323,
-                325,
-                331,
-                342,
-                356,
-                370,
-                392,
-                395,
-                399,
-                408,
-                417,
-                488,
-                540,
-                562,
-                570,
-                572,
-                581,
-                609,
-                748,
-                776,
-                1156,
-                1163,
-                1164,
-                1165,
-                1166,
-                1167,
-                1168,
-                1169,
-                1170,
-                1171,
-                1172,
-                1173,
-                1174,
-                1175,
-                1176,
-                1178,
-                1179,
-                1180,
-                1181,
-                1182,
-                1183,
-                1184,
-                1185,
-                1186,
-                1187,
-                1188,
-                1189,
-                1190,
-                1191,
-            )
-        )
-
-        ID_TO_LABEL = {}
-        LABEL_TO_ID = {}
-        for i in range(len(VALID_CLASS_IDS)):
-            LABEL_TO_ID[CLASS_LABELS[i]] = VALID_CLASS_IDS[i]
-            ID_TO_LABEL[VALID_CLASS_IDS[i]] = CLASS_LABELS[i]
-
-    total_true = 0
-    total_seen = 0
-    NUM_CLASSES = len(VALID_CLASS_IDS)
-
-    true_positive_classes = np.zeros(NUM_CLASSES)
-    positive_classes = np.zeros(NUM_CLASSES)
-    gt_classes = np.zeros(NUM_CLASSES)
 
     # precision & recall
-    total_gt_ins = np.zeros(NUM_CLASSES)
-    at = 0.5
-    tpsins = [[] for _ in range(NUM_CLASSES)]
-    fpsins = [[] for _ in range(NUM_CLASSES)]
-    # mucov and mwcov
-    all_mean_cov = [[] for _ in range(NUM_CLASSES)]
-    all_mean_weighted_cov = [[] for _ in range(NUM_CLASSES)]
 
     print("evaluating", len(preds), "scans...")
     matches = {}
     for i, (k, v) in enumerate(preds.items()):
         gt_file = os.path.join(gt_path, k + ".txt")
-        if not os.path.isfile(gt_file):
-            util.print_error(
-                "Scan {} does not match any gt file".format(k), user_fault=True
-            )
-
-        if dataset == "s3dis":
-            gt_ids = util_3d.load_ids(gt_file)
-            gt_sem = (gt_ids // 1000) - 1
-            gt_ins = gt_ids - (gt_ids // 1000) * 1000
-
-            # pred_sem = v['pred_classes'] - 1
-            pred_sem = np.zeros(v["pred_masks"].shape[0], dtype=np.int)
-            # TODO CONTINUE HERE!!!!!!!!!!!!!
-            pred_ins = np.zeros(v["pred_masks"].shape[0], dtype=np.int)
-
-            for inst_id in reversed(range(v["pred_masks"].shape[1])):
-                point_ids = np.argwhere(v["pred_masks"][:, inst_id] == 1.0)[
-                    :, 0
-                ]
-                pred_ins[point_ids] = inst_id + 1
-                pred_sem[point_ids] = v["pred_classes"][inst_id] - 1
-
-            # semantic acc
-            total_true += np.sum(pred_sem == gt_sem)
-            total_seen += pred_sem.shape[0]
-
-            # TODO PARALLELIZ THIS!!!!!!!
-            # pn semantic mIoU
-            """
-            for j in range(gt_sem.shape[0]):
-                gt_l = int(gt_sem[j])
-                pred_l = int(pred_sem[j])
-                gt_classes[gt_l] += 1
-                positive_classes[pred_l] += 1
-                true_positive_classes[gt_l] += int(gt_l == pred_l)
-            """
-
-            uniq, counts = np.unique(pred_sem, return_counts=True)
-            positive_classes[uniq] += counts
-
-            uniq, counts = np.unique(gt_sem, return_counts=True)
-            gt_classes[uniq] += counts
-
-            uniq, counts = np.unique(
-                gt_sem[pred_sem == gt_sem], return_counts=True
-            )
-            true_positive_classes[uniq] += counts
-
-            # instance
-            un = np.unique(pred_ins)
-            pts_in_pred = [[] for _ in range(NUM_CLASSES)]
-            for ig, g in enumerate(un):  # each object in prediction
-                if g == -1:
-                    continue
-                tmp = pred_ins == g
-                sem_seg_i = int(stats.mode(pred_sem[tmp])[0])
-                pts_in_pred[sem_seg_i] += [tmp]
-
-            un = np.unique(gt_ins)
-            pts_in_gt = [[] for _ in range(NUM_CLASSES)]
-            for ig, g in enumerate(un):
-                tmp = gt_ins == g
-                sem_seg_i = int(stats.mode(gt_sem[tmp])[0])
-                pts_in_gt[sem_seg_i] += [tmp]
-
-            # instance mucov & mwcov
-            for i_sem in range(NUM_CLASSES):
-                sum_cov = 0
-                mean_cov = 0
-                mean_weighted_cov = 0
-                num_gt_point = 0
-                for ig, ins_gt in enumerate(pts_in_gt[i_sem]):
-                    ovmax = 0.0
-                    num_ins_gt_point = np.sum(ins_gt)
-                    num_gt_point += num_ins_gt_point
-                    for ip, ins_pred in enumerate(pts_in_pred[i_sem]):
-                        union = ins_pred | ins_gt
-                        intersect = ins_pred & ins_gt
-                        iou = float(np.sum(intersect)) / np.sum(union)
-
-                        if iou > ovmax:
-                            ovmax = iou
-                            ipmax = ip
-
-                    sum_cov += ovmax
-                    mean_weighted_cov += ovmax * num_ins_gt_point
-
-                if len(pts_in_gt[i_sem]) != 0:
-                    mean_cov = sum_cov / len(pts_in_gt[i_sem])
-                    all_mean_cov[i_sem].append(mean_cov)
-
-                    mean_weighted_cov /= num_gt_point
-                    all_mean_weighted_cov[i_sem].append(mean_weighted_cov)
-
-        if dataset == "s3dis":
-            # instance precision & recall
-            for i_sem in range(NUM_CLASSES):
-                tp = [0.0] * len(pts_in_pred[i_sem])
-                fp = [0.0] * len(pts_in_pred[i_sem])
-                gtflag = np.zeros(len(pts_in_gt[i_sem]))
-                total_gt_ins[i_sem] += len(pts_in_gt[i_sem])
-
-                for ip, ins_pred in enumerate(pts_in_pred[i_sem]):
-                    ovmax = -1.0
-
-                    for ig, ins_gt in enumerate(pts_in_gt[i_sem]):
-                        union = ins_pred | ins_gt
-                        intersect = ins_pred & ins_gt
-                        iou = float(np.sum(intersect)) / np.sum(union)
-
-                        if iou > ovmax:
-                            ovmax = iou
-                            igmax = ig
-
-                    if ovmax >= at:
-                        tp[ip] = 1  # true
-                    else:
-                        fp[ip] = 1  # false positive
-
-                tpsins[i_sem] += tp
-                fpsins[i_sem] += fp
+        # if not os.path.isfile(gt_file):
+        #     util.print_error("Scan {} does not match any gt file".format(k), user_fault=True)
 
         matches_key = os.path.abspath(gt_file)
+
         # assign gt to predictions
         gt2pred, pred2gt = assign_instances_for_scan(v, gt_file)
         matches[matches_key] = {}
@@ -1099,43 +497,3 @@ def evaluate(
     print_results(avgs)
     write_result_file(avgs, output_file)
 
-    if dataset == "s3dis":
-        MUCov = np.zeros(NUM_CLASSES)
-        MWCov = np.zeros(NUM_CLASSES)
-        for i_sem in range(NUM_CLASSES):
-            MUCov[i_sem] = np.mean(all_mean_cov[i_sem])
-            MWCov[i_sem] = np.mean(all_mean_weighted_cov[i_sem])
-
-        precision = np.zeros(NUM_CLASSES)
-        recall = np.zeros(NUM_CLASSES)
-        for i_sem in range(NUM_CLASSES):
-            tp = np.asarray(tpsins[i_sem]).astype(np.float)
-            fp = np.asarray(fpsins[i_sem]).astype(np.float)
-            tp = np.sum(tp)
-            fp = np.sum(fp)
-            rec = tp / total_gt_ins[i_sem]
-            prec = tp / (tp + fp)
-
-            precision[i_sem] = prec
-            recall[i_sem] = rec
-
-        """
-        LOG_FOUT = open(os.path.join('results_a5.txt'), 'w')
-    
-        def log_string(out_str):
-            LOG_FOUT.write(out_str + '\n')
-            LOG_FOUT.flush()
-            print(out_str)
-        """
-
-        return np.mean(precision), np.mean(recall)
-
-
-# TODO: remove this
-# import pandas as pd
-# def main():
-#    print("!!! CLI is only for debugging purposes. use `evaluate()` instead.")
-#    evaluate(pd.read_pickle("/globalwork/schult/saved_predictions.pkl"), opt.gt_path, opt.output_file)
-
-# if __name__ == '__main__':
-#    main()

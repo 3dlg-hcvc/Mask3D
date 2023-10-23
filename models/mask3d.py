@@ -45,14 +45,14 @@ class Mask3D(nn.Module):
         super().__init__()
 
         self.random_normal = random_normal
-        self.random_query_both = random_query_both
+        # self.random_query_both = random_query_both
         self.random_queries = random_queries
         self.max_sample_size = max_sample_size
         self.gauss_scale = gauss_scale
         self.voxel_size = voxel_size
         self.scatter_type = scatter_type
         self.hlevels = hlevels
-        self.use_level_embed = use_level_embed
+        # self.use_level_embed = use_level_embed
         self.train_on_segments = train_on_segments
         self.normalize_pos_enc = normalize_pos_enc
         self.num_decoders = num_decoders
@@ -62,7 +62,7 @@ class Mask3D(nn.Module):
         self.shared_decoder = shared_decoder
         self.sample_sizes = sample_sizes
         self.non_parametric_queries = non_parametric_queries
-        self.use_np_features = use_np_features
+        # self.use_np_features = use_np_features
         self.mask_dim = hidden_dim
         self.num_heads = num_heads
         self.num_queries = num_queries
@@ -88,9 +88,7 @@ class Mask3D(nn.Module):
         else:
             assert False, "Scatter function not known"
 
-        assert (
-            not use_np_features
-        ) or non_parametric_queries, "np features only with np queries"
+        # assert (not use_np_features) or non_parametric_queries, "np features only with np queries"
 
         if self.non_parametric_queries:
             self.query_projection = GenericMLP(
@@ -102,31 +100,31 @@ class Mask3D(nn.Module):
                 hidden_use_bias=True,
             )
 
-            if self.use_np_features:
-                self.np_feature_projection = nn.Sequential(
-                    nn.Linear(sizes[-1], hidden_dim),
-                    nn.ReLU(),
-                    nn.Linear(hidden_dim, hidden_dim),
-                )
-        elif self.random_query_both:
-            self.query_projection = GenericMLP(
-                input_dim=2 * self.mask_dim,
-                hidden_dims=[2 * self.mask_dim],
-                output_dim=2 * self.mask_dim,
-                use_conv=True,
-                output_use_activation=True,
-                hidden_use_bias=True,
-            )
-        else:
-            # PARAMETRIC QUERIES
-            # learnable query features
-            self.query_feat = nn.Embedding(num_queries, hidden_dim)
-            # learnable query p.e.
-            self.query_pos = nn.Embedding(num_queries, hidden_dim)
+            # if self.use_np_features:
+            #     self.np_feature_projection = nn.Sequential(
+            #         nn.Linear(sizes[-1], hidden_dim),
+            #         nn.ReLU(),
+            #         nn.Linear(hidden_dim, hidden_dim),
+            #     )
+        # elif self.random_query_both:
+        #     self.query_projection = GenericMLP(
+        #         input_dim=2 * self.mask_dim,
+        #         hidden_dims=[2 * self.mask_dim],
+        #         output_dim=2 * self.mask_dim,
+        #         use_conv=True,
+        #         output_use_activation=True,
+        #         hidden_use_bias=True,
+        #     )
+        # else:
+        #     # PARAMETRIC QUERIES
+        #     # learnable query features
+        #     self.query_feat = nn.Embedding(num_queries, hidden_dim)
+        #     # learnable query p.e.
+        #     self.query_pos = nn.Embedding(num_queries, hidden_dim)
 
-        if self.use_level_embed:
-            # learnable scale-level embedding
-            self.level_embed = nn.Embedding(self.num_levels, hidden_dim)
+        # if self.use_level_embed:
+        #     # learnable scale-level embedding
+        #     self.level_embed = nn.Embedding(self.num_levels, hidden_dim)
 
         self.mask_embed_head = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim),
@@ -136,23 +134,25 @@ class Mask3D(nn.Module):
 
         self.class_embed_head = nn.Linear(hidden_dim, self.num_classes)
 
-        if self.pos_enc_type == "legacy":
-            self.pos_enc = PositionalEncoding3D(channels=self.mask_dim)
-        elif self.pos_enc_type == "fourier":
-            self.pos_enc = PositionEmbeddingCoordsSine(
-                pos_type="fourier",
-                d_pos=self.mask_dim,
-                gauss_scale=self.gauss_scale,
-                normalize=self.normalize_pos_enc,
-            )
-        elif self.pos_enc_type == "sine":
-            self.pos_enc = PositionEmbeddingCoordsSine(
-                pos_type="sine",
-                d_pos=self.mask_dim,
-                normalize=self.normalize_pos_enc,
-            )
-        else:
-            assert False, "pos enc type not known"
+        # if self.pos_enc_type == "legacy":
+        #     self.pos_enc = PositionalEncoding3D(channels=self.mask_dim)
+        # elif self.pos_enc_type == "fourier":
+
+        self.pos_enc = PositionEmbeddingCoordsSine(
+            pos_type="fourier",
+            d_pos=self.mask_dim,
+            gauss_scale=self.gauss_scale,
+            normalize=self.normalize_pos_enc,
+        )
+
+        # elif self.pos_enc_type == "sine":
+        #     self.pos_enc = PositionEmbeddingCoordsSine(
+        #         pos_type="sine",
+        #         d_pos=self.mask_dim,
+        #         normalize=self.normalize_pos_enc,
+        #     )
+        # else:
+        #     assert False, "pos enc type not known"
 
         self.pooling = MinkowskiAvgPooling(kernel_size=2, stride=2, dimension=3)
 
@@ -224,9 +224,7 @@ class Mask3D(nn.Module):
 
         return pos_encodings_pcd
 
-    def forward(
-        self, x, point2segment=None, raw_coordinates=None, is_eval=False
-    ):
+    def forward(self, x, point2segment=None, raw_coordinates=None, is_eval=False):
         pcd_features, aux = self.backbone(x)
 
         batch_size = len(x.decomposed_coordinates)
@@ -284,57 +282,57 @@ class Mask3D(nn.Module):
             query_pos = self.pos_enc(sampled_coords.float(), input_range=[mins, maxs])  # Batch, Dim, queries
             query_pos = self.query_projection(query_pos)
 
-            if not self.use_np_features:
-                queries = torch.zeros_like(query_pos).permute((0, 2, 1))
-            else:
-                queries = torch.stack(
-                    [
-                        pcd_features.decomposed_features[i][
-                            fps_idx[i].long(), :
-                        ]
-                        for i in range(len(fps_idx))
-                    ]
-                )
-                queries = self.np_feature_projection(queries)
-            query_pos = query_pos.permute((2, 0, 1))
-        elif self.random_queries:
-            query_pos = (
-                torch.rand(
-                    batch_size,
-                    self.mask_dim,
-                    self.num_queries,
-                    device=x.device,
-                )
-                - 0.5
-            )
-
+            # if not self.use_np_features:
             queries = torch.zeros_like(query_pos).permute((0, 2, 1))
+            # else:
+            #     queries = torch.stack(
+            #         [
+            #             pcd_features.decomposed_features[i][
+            #                 fps_idx[i].long(), :
+            #             ]
+            #             for i in range(len(fps_idx))
+            #         ]
+            #     )
+            #     queries = self.np_feature_projection(queries)
             query_pos = query_pos.permute((2, 0, 1))
-        elif self.random_query_both:
-            if not self.random_normal:
-                query_pos_feat = (
-                    torch.rand(
-                        batch_size,
-                        2 * self.mask_dim,
-                        self.num_queries,
-                        device=x.device,
-                    )
-                    - 0.5
-                )
-            else:
-                query_pos_feat = torch.randn(
-                    batch_size,
-                    2 * self.mask_dim,
-                    self.num_queries,
-                    device=x.device,
-                )
-
-            queries = query_pos_feat[:, : self.mask_dim, :].permute((0, 2, 1))
-            query_pos = query_pos_feat[:, self.mask_dim :, :].permute((2, 0, 1))
-        else:
-            # PARAMETRIC QUERIES
-            queries = self.query_feat.weight.unsqueeze(0).repeat(batch_size, 1, 1)
-            query_pos = self.query_pos.weight.unsqueeze(1).repeat(1, batch_size, 1)
+        # elif self.random_queries:
+        #     query_pos = (
+        #         torch.rand(
+        #             batch_size,
+        #             self.mask_dim,
+        #             self.num_queries,
+        #             device=x.device,
+        #         )
+        #         - 0.5
+        #     )
+        #
+        #     queries = torch.zeros_like(query_pos).permute((0, 2, 1))
+        #     query_pos = query_pos.permute((2, 0, 1))
+        # elif self.random_query_both:
+        #     if not self.random_normal:
+        #         query_pos_feat = (
+        #             torch.rand(
+        #                 batch_size,
+        #                 2 * self.mask_dim,
+        #                 self.num_queries,
+        #                 device=x.device,
+        #             )
+        #             - 0.5
+        #         )
+        #     else:
+        #         query_pos_feat = torch.randn(
+        #             batch_size,
+        #             2 * self.mask_dim,
+        #             self.num_queries,
+        #             device=x.device,
+        #         )
+        #
+        #     queries = query_pos_feat[:, : self.mask_dim, :].permute((0, 2, 1))
+        #     query_pos = query_pos_feat[:, self.mask_dim :, :].permute((2, 0, 1))
+        # else:
+        #     # PARAMETRIC QUERIES
+        #     queries = self.query_feat.weight.unsqueeze(0).repeat(batch_size, 1, 1)
+        #     query_pos = self.query_pos.weight.unsqueeze(1).repeat(1, batch_size, 1)
 
         predictions_class = []
         predictions_mask = []
@@ -431,8 +429,8 @@ class Mask3D(nn.Module):
                 batched_attn = torch.logical_or(batched_attn, m[..., None])
 
                 src_pcd = self.lin_squeeze[decoder_counter][i](batched_aux.permute((1, 0, 2)))
-                if self.use_level_embed:
-                    src_pcd += self.level_embed.weight[i]
+                # if self.use_level_embed:
+                #     src_pcd += self.level_embed.weight[i]
 
                 output = self.cross_attention[decoder_counter][i](
                     queries.permute((1, 0, 2)),
@@ -482,11 +480,9 @@ class Mask3D(nn.Module):
         return {
             "pred_logits": predictions_class[-1],
             "pred_masks": predictions_mask[-1],
-            "aux_outputs": self._set_aux_loss(
-                predictions_class, predictions_mask
-            ),
+            "aux_outputs": self._set_aux_loss(predictions_class, predictions_mask),
             "sampled_coords": sampled_coords.detach().cpu().numpy() if sampled_coords is not None else None,
-            "backbone_features": pcd_features,
+            # "backbone_features": pcd_features,
         }
 
     def mask_module(

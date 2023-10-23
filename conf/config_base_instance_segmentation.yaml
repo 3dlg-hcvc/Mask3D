@@ -15,9 +15,9 @@ general:
   export: false
   use_dbscan: false
   ignore_class_threshold: 100
-  project_name: scannet
+  project_name: OPMotion
   experiment_name: DEBUG_ABLATION
-  num_targets: 19
+  num_targets: 4
   add_instance: true
   dbscan_eps: 0.95
   dbscan_min_points: 1
@@ -35,7 +35,7 @@ general:
 
   # eval_inner_core: -1 # disabled
 
-  topk_per_image: 100
+  topk_per_image: 10
 
   ignore_mask_idx: []
 

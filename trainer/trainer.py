@@ -149,16 +149,17 @@ class InstanceSegmentation(pl.LightningModule):
                 # remove this loss if not specified in `weight_dict`
                 losses.pop(k)
 
-        logs = {f"train_{k}": v.detach().cpu().item() for k, v in losses.items()}
-
-        logs["train_mean_loss_ce"] = statistics.mean([item for item in [v for k, v in logs.items() if "loss_ce" in k]])
+        # logs = {f"train_{k}": v.detach().cpu().item() for k, v in losses.items()}
+        tmp_logs = {f"train_{k}": v.detach().cpu().item() for k, v in losses.items()}
+        logs = {}
+        logs["train_mean_loss_ce"] = statistics.mean([item for item in [v for k, v in tmp_logs.items() if "loss_ce" in k]])
 
         logs["train_mean_loss_mask"] = statistics.mean(
-            [item for item in [v for k, v in logs.items() if "loss_mask" in k]]
+            [item for item in [v for k, v in tmp_logs.items() if "loss_mask" in k]]
         )
 
         logs["train_mean_loss_dice"] = statistics.mean(
-            [item for item in [v for k, v in logs.items() if "loss_dice" in k]]
+            [item for item in [v for k, v in tmp_logs.items() if "loss_dice" in k]]
         )
         self.log_dict(logs)
         return sum(losses.values())
@@ -187,10 +188,10 @@ class InstanceSegmentation(pl.LightningModule):
                     np.savetxt(f"{pred_mask_path}/{file_name}_{real_id}.txt", mask, fmt="%d")
                     fout.write(f"pred_mask/{file_name}_{real_id}.txt {pred_class} {score}\n")
 
-    def training_epoch_end(self, outputs):
-        train_loss = sum([out["loss"].cpu().item() for out in outputs]) / len(outputs)
-        results = {"train_loss_mean": train_loss}
-        self.log_dict(results)
+    # def training_epoch_end(self, outputs):
+    #     train_loss = sum([out["loss"].cpu().item() for out in outputs]) / len(outputs)
+    #     results = {"train_loss_mean": train_loss}
+    #     self.log_dict(results)
 
     def validation_epoch_end(self, outputs):
         self.test_epoch_end(outputs)
@@ -477,9 +478,8 @@ class InstanceSegmentation(pl.LightningModule):
 
         return mask
 
-    def get_mask_and_scores(self, mask_cls, mask_pred, num_queries=100, num_classes=18, device=None):
-        if device is None:
-            device = self.device
+    def get_mask_and_scores(self, mask_cls, mask_pred, num_queries, num_classes):
+        device = self.device
         labels = (torch.arange(num_classes, device=device).unsqueeze(0).repeat(num_queries, 1).flatten(0, 1))
 
         if self.config.general.topk_per_image != -1:
@@ -780,6 +780,7 @@ class InstanceSegmentation(pl.LightningModule):
         log_prefix = f"val"
         ap_results = {}
 
+        logged_results = {}
         # head_results, tail_results, common_results = [], [], []
 
         box_ap_50 = eval_det(self.bbox_preds, self.bbox_gt, ovthresh=0.5, use_07_metric=False)
@@ -789,6 +790,9 @@ class InstanceSegmentation(pl.LightningModule):
 
         ap_results[f"{log_prefix}_mean_box_ap_25"] = mean_box_ap_25
         ap_results[f"{log_prefix}_mean_box_ap_50"] = mean_box_ap_50
+
+        logged_results[f"{log_prefix}_mean_box_ap_25"] = mean_box_ap_25
+        logged_results[f"{log_prefix}_mean_box_ap_50"] = mean_box_ap_50
 
         for class_id in box_ap_50[-1].keys():
             class_name = self.train_dataset.label_info[class_id]["name"]
@@ -803,8 +807,9 @@ class InstanceSegmentation(pl.LightningModule):
 
         if self.validation_dataset.dataset_name in ["scannet", "stpls3d", "scannet200"]:
             gt_data_path = f"{self.validation_dataset.data_dir[0]}/instance_gt/{self.validation_dataset.mode}"
-        # else:
-        #     gt_data_path = f"{self.validation_dataset.data_dir[0]}/instance_gt/Area_{self.config.general.area}"
+        elif self.validation_dataset.dataset_name == "opmotion":
+            gt_data_path = f"data/processed/opmotion/instance_gt/{self.validation_dataset.mode}"
+
 
         pred_path = f"{base_path}/tmp_output.txt"
         log_prefix = f"val"
@@ -830,14 +835,23 @@ class InstanceSegmentation(pl.LightningModule):
             ap_results[f"{log_prefix}_mean_ap_50"] = mean_ap_50
             ap_results[f"{log_prefix}_mean_ap_25"] = mean_ap_25
 
+            logged_results[f"{log_prefix}_mean_ap"] = mean_ap
+            logged_results[f"{log_prefix}_mean_ap_50"] = mean_ap_50
+            logged_results[f"{log_prefix}_mean_ap_25"] = mean_ap_25
+
             ap_results = {key: 0.0 if math.isnan(score) else score for key, score in ap_results.items()}
+            logged_results = {key: 0.0 if math.isnan(score) else score for key, score in logged_results.items()}
         except (IndexError, OSError) as e:
             print("NO SCORES!!!")
             ap_results[f"{log_prefix}_mean_ap"] = 0.0
             ap_results[f"{log_prefix}_mean_ap_50"] = 0.0
             ap_results[f"{log_prefix}_mean_ap_25"] = 0.0
 
-        self.log_dict(ap_results)
+            logged_results[f"{log_prefix}_mean_ap"] = 0.0
+            logged_results[f"{log_prefix}_mean_ap_50"] = 0.0
+            logged_results[f"{log_prefix}_mean_ap_25"] = 0.0
+
+        self.log_dict(logged_results)
 
         if not self.config.general.export:
             shutil.rmtree(base_path)
@@ -863,11 +877,11 @@ class InstanceSegmentation(pl.LightningModule):
             for key, val in output.items():  # .items() in Python 3.
                 dd[key].append(val)
 
-        dd = {k: statistics.mean(v) for k, v in dd.items()}
-
-        dd["val_mean_loss_ce"] = statistics.mean([item for item in [v for k, v in dd.items() if "loss_ce" in k]])
-        dd["val_mean_loss_mask"] = statistics.mean([item for item in [v for k, v in dd.items() if "loss_mask" in k]])
-        dd["val_mean_loss_dice"] = statistics.mean([item for item in [v for k, v in dd.items() if "loss_dice" in k]])
+        tmp_dd = {k: statistics.mean(v) for k, v in dd.items()}
+        dd = {}
+        dd["val_mean_loss_ce"] = statistics.mean([item for item in [v for k, v in tmp_dd.items() if "loss_ce" in k]])
+        dd["val_mean_loss_mask"] = statistics.mean([item for item in [v for k, v in tmp_dd.items() if "loss_mask" in k]])
+        dd["val_mean_loss_dice"] = statistics.mean([item for item in [v for k, v in tmp_dd.items() if "loss_dice" in k]])
 
         self.log_dict(dd)
 
