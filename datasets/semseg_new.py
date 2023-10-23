@@ -102,17 +102,17 @@ class OpmotionDataset(Dataset):
 
             os.makedirs(f"data/processed/opmotion/instance_gt/{mode}", exist_ok=True)
             gt_path = f"data/processed/opmotion/instance_gt/{mode}/{str(int(model_ids[i]))}.txt"
-            gt_data = semantic_ids[i] * 1000 + instance_ids[i] + 1
+            gt_data = semantic_ids[i] * 1000 + instance_ids[i]
             if not os.path.exists(gt_path):
 
                 np.savetxt(gt_path, gt_data.astype(np.int32), fmt="%d")
 
         # if working only on classes for validation - discard others
         self._labels = {
-            1: {"name": "drawer", "validation": True},
-            2: {"name": "door", "validation": True},
-            3: {"name": "lid", "validation": True},
-            4: {"name": "base", "validation": True}
+            0: {"name": "drawer", "validation": True},
+            1: {"name": "door", "validation": True},
+            2: {"name": "lid", "validation": True},
+            3: {"name": "base", "validation": True}
         }
 
         color_mean, color_std = color_mean_std[0], color_mean_std[1]

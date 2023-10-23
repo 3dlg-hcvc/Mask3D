@@ -168,46 +168,46 @@ class SetCriterion(nn.Module):
 
             loss_masks.append(sigmoid_ce_loss_jit(map, target_mask, num_masks))
             loss_dices.append(dice_loss_jit(map, target_mask, num_masks))
-        # del target_mask
+
         return {"loss_mask": torch.sum(torch.stack(loss_masks)), "loss_dice": torch.sum(torch.stack(loss_dices))}
 
-        src_idx = self._get_src_permutation_idx(indices)
-        tgt_idx = self._get_tgt_permutation_idx(indices)
-        src_masks = outputs["pred_masks"]
-        src_masks = src_masks[src_idx]
-        masks = [t[mask_type] for t in targets]
-        # TODO use valid to mask invalid areas due to padding in loss
-        target_masks, valid = nested_tensor_from_tensor_list(masks).decompose()
-        target_masks = target_masks.to(src_masks)
-        target_masks = target_masks[tgt_idx]
-
-        # No need to upsample predictions as we are using normalized coordinates :)
-        # N x 1 x H x W
-        src_masks = src_masks[:, None]
-        target_masks = target_masks[:, None]
-
-        with torch.no_grad():
-            # sample point_coords
-            point_coords = get_uncertain_point_coords_with_randomness(
-                src_masks,
-                lambda logits: calculate_uncertainty(logits),
-                self.num_points,
-                self.oversample_ratio,
-                self.importance_sample_ratio,
-            )
-            # get gt labels
-            point_labels = point_sample(target_masks, point_coords, align_corners=False).squeeze(1)
-
-        point_logits = point_sample(src_masks, point_coords, align_corners=False).squeeze(1)
-
-        losses = {
-            "loss_mask": sigmoid_ce_loss_jit(point_logits, point_labels, num_masks, mask_type),
-            "loss_dice": dice_loss_jit(point_logits, point_labels, num_masks, mask_type),
-        }
-
-        del src_masks
-        del target_masks
-        return losses
+        # src_idx = self._get_src_permutation_idx(indices)
+        # tgt_idx = self._get_tgt_permutation_idx(indices)
+        # src_masks = outputs["pred_masks"]
+        # src_masks = src_masks[src_idx]
+        # masks = [t[mask_type] for t in targets]
+        # # TODO use valid to mask invalid areas due to padding in loss
+        # target_masks, valid = nested_tensor_from_tensor_list(masks).decompose()
+        # target_masks = target_masks.to(src_masks)
+        # target_masks = target_masks[tgt_idx]
+        #
+        # # No need to upsample predictions as we are using normalized coordinates :)
+        # # N x 1 x H x W
+        # src_masks = src_masks[:, None]
+        # target_masks = target_masks[:, None]
+        #
+        # with torch.no_grad():
+        #     # sample point_coords
+        #     point_coords = get_uncertain_point_coords_with_randomness(
+        #         src_masks,
+        #         lambda logits: calculate_uncertainty(logits),
+        #         self.num_points,
+        #         self.oversample_ratio,
+        #         self.importance_sample_ratio,
+        #     )
+        #     # get gt labels
+        #     point_labels = point_sample(target_masks, point_coords, align_corners=False).squeeze(1)
+        #
+        # point_logits = point_sample(src_masks, point_coords, align_corners=False).squeeze(1)
+        #
+        # losses = {
+        #     "loss_mask": sigmoid_ce_loss_jit(point_logits, point_labels, num_masks, mask_type),
+        #     "loss_dice": dice_loss_jit(point_logits, point_labels, num_masks, mask_type),
+        # }
+        #
+        # del src_masks
+        # del target_masks
+        # return losses
 
     def _get_src_permutation_idx(self, indices):
         # permute predictions following indices

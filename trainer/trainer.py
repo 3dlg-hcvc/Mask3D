@@ -704,10 +704,7 @@ class InstanceSegmentation(pl.LightningModule):
                     if target_full_res[bid]["labels"][obj_id].item() == 255:
                         continue
 
-                    obj_coords = full_res_coords[bid][
-                                 target_full_res[bid]["masks"][obj_id, :].cpu().detach().numpy().astype(bool),
-                                 :,
-                                 ]
+                    obj_coords = full_res_coords[bid][target_full_res[bid]["masks"][obj_id, :].cpu().detach().numpy().astype(bool), :]
                     if obj_coords.shape[0] > 0:
                         obj_center = obj_coords.mean(axis=0)
                         obj_axis_length = obj_coords.max(axis=0) - obj_coords.min(axis=0)

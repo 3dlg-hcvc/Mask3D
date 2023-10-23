@@ -465,7 +465,7 @@ def evaluate(preds: dict, gt_path: str, output_file: str, dataset: str):
 
     if dataset == "opmotion":
         CLASS_LABELS = ["drawer", "door", "lid", "base"]
-        VALID_CLASS_IDS = [1, 2, 3, 4]
+        VALID_CLASS_IDS = [0, 1, 2, 3]
 
         for i in range(len(VALID_CLASS_IDS)):
             LABEL_TO_ID[CLASS_LABELS[i]] = VALID_CLASS_IDS[i]
