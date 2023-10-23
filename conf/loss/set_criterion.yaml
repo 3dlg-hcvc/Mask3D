@@ -1,6 +1,6 @@
 # @package _group_
 _target_: models.criterion.SetCriterion
-num_classes: ${general.num_targets}
+num_classes: ${data.num_classes}
 eos_coef: 0.1
 losses:
   - "labels"

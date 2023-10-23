@@ -1,4 +1,5 @@
 # @package data
+num_classes: 20
 train_dataset:
   _target_: datasets.semseg.SemanticSegmentationDataset
   dataset_name: "scannet"
@@ -9,7 +10,7 @@ train_dataset:
   # data_percent: 1.0
   mode: ${data.train_mode}
   ignore_label: ${data.ignore_label}
-  num_labels: ${data.num_labels}
+  num_labels: ${data.num_classes}
   add_raw_coordinates: ${data.add_raw_coordinates}
   add_colors: ${data.add_colors}
   add_normals: ${data.add_normals}
@@ -41,7 +42,7 @@ validation_dataset:
   # data_percent: 1.0
   mode: ${data.validation_mode}
   ignore_label: ${data.ignore_label}
-  num_labels: ${data.num_labels}
+  num_labels: ${data.num_classes}
   add_raw_coordinates: ${data.add_raw_coordinates}
   add_colors: ${data.add_colors}
   add_normals: ${data.add_normals}
@@ -63,7 +64,7 @@ test_dataset:
   # data_percent: 1.0
   mode: ${data.test_mode}
   ignore_label: ${data.ignore_label}
-  num_labels: ${data.num_labels}
+  num_labels: ${data.num_classes}
   add_raw_coordinates: ${data.add_raw_coordinates}
   add_colors: ${data.add_colors}
   add_normals: ${data.add_normals}
