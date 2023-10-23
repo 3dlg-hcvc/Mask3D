@@ -1,5 +1,5 @@
 # @package _group_
-max_epochs: 601
+max_epochs: 300
 min_epochs: 1
 resume_from_checkpoint: null
 check_val_every_n_epoch: 3
