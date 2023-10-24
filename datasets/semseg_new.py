@@ -79,7 +79,7 @@ class OpmotionDataset(Dataset):
         self._data = []
 
         f = h5py.File("data/processed/opmotion/opmotion.h5", "r")
-        semantic_ids = f["semantic_ids"][()]
+        semantic_ids = f["semantic_ids"][()] + 1
         instance_ids = f["instance_ids"][()]
         points = f["points"][()]
         rgb = f["colors"][()]
@@ -102,17 +102,17 @@ class OpmotionDataset(Dataset):
 
             os.makedirs(f"data/processed/opmotion/instance_gt/{mode}", exist_ok=True)
             gt_path = f"data/processed/opmotion/instance_gt/{mode}/{str(int(model_ids[i]))}.txt"
-            gt_data = semantic_ids[i] * 1000 + instance_ids[i]
+            gt_data = semantic_ids[i] * 1000 + instance_ids[i] + 1
             if not os.path.exists(gt_path):
 
                 np.savetxt(gt_path, gt_data.astype(np.int32), fmt="%d")
 
         # if working only on classes for validation - discard others
         self._labels = {
-            0: {"name": "drawer", "validation": True},
-            1: {"name": "door", "validation": True},
-            2: {"name": "lid", "validation": True},
-            3: {"name": "base", "validation": True}
+            1: {"name": "drawer", "validation": True},
+            2: {"name": "door", "validation": True},
+            3: {"name": "lid", "validation": True},
+            4: {"name": "base", "validation": True}
         }
 
         color_mean, color_std = color_mean_std[0], color_mean_std[1]
@@ -198,8 +198,8 @@ class OpmotionDataset(Dataset):
 
         # prepare labels and map from 0 to 20(40)
         labels = labels.astype(np.int32)
-        # if labels.size > 0:
-        #     labels[:, 0] = self._remap_from_zero(labels[:, 0])
+        if labels.size > 0:
+            labels[:, 0] = self._remap_from_zero(labels[:, 0])
             # if not self.add_instance:
             #     # taking only first column, which is segmentation label, not instance
             #     labels = labels[:, 0].flatten()[..., None]

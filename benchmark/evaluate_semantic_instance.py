@@ -85,7 +85,10 @@ for i in range(len(VALID_CLASS_IDS)):
 opt = {}
 opt["overlaps"] = np.append(np.arange(0.5, 0.95, 0.05), 0.25)
 # minimum region size for evaluation [verts]
-opt["min_region_sizes"] = np.array([100])  # 100 for s3dis, scannet
+# opt["min_region_sizes"] = np.array([100])  # 100 for s3dis, scannet
+
+#TODO
+opt["min_region_sizes"] = np.array([float("inf")])
 # distance thresholds [m]
 opt["distance_threshes"] = np.array([float("inf")])
 # distance confidences
@@ -461,11 +464,13 @@ def evaluate(preds: dict, gt_path: str, output_file: str, dataset: str):
     global ID_TO_LABEL
     global LABEL_TO_ID
     global opt
-
+    ID_TO_LABEL = {}
+    LABEL_TO_ID = {}
 
     if dataset == "opmotion":
         CLASS_LABELS = ["drawer", "door", "lid", "base"]
-        VALID_CLASS_IDS = [0, 1, 2, 3]
+        VALID_CLASS_IDS = [1, 2, 3, 4]
+
 
         for i in range(len(VALID_CLASS_IDS)):
             LABEL_TO_ID[CLASS_LABELS[i]] = VALID_CLASS_IDS[i]
