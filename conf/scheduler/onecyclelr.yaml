@@ -4,8 +4,8 @@ scheduler:
   _target_: torch.optim.lr_scheduler.OneCycleLR
   max_lr: ${optimizer.lr}
   epochs: ${trainer.max_epochs}
+  pct_start: 0.1
   # need to set to number because of tensorboard logger
-  steps_per_epoch: -1
 
 pytorch_lightning_params:
   interval: step
