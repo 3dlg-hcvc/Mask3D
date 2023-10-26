@@ -88,7 +88,7 @@ opt["overlaps"] = np.append(np.arange(0.5, 0.95, 0.05), 0.25)
 # opt["min_region_sizes"] = np.array([100])  # 100 for s3dis, scannet
 
 #TODO
-opt["min_region_sizes"] = np.array([float("inf")])
+opt["min_region_sizes"] = np.array([float("-inf")])
 # distance thresholds [m]
 opt["distance_threshes"] = np.array([float("inf")])
 # distance confidences
@@ -126,14 +126,7 @@ def evaluate_matches(matches):
                     pred_instances = matches[m]["pred"][label_name]
                     gt_instances = matches[m]["gt"][label_name]
                     # filter groups in ground truth
-                    gt_instances = [
-                        gt
-                        for gt in gt_instances
-                        if gt["instance_id"] >= 1000
-                        and gt["vert_count"] >= min_region_size
-                        and gt["med_dist"] <= distance_thresh
-                        and gt["dist_conf"] >= distance_conf
-                    ]
+                    gt_instances = [gt for gt in gt_instances if gt["instance_id"] >= 1000 and gt["vert_count"] >= min_region_size and gt["med_dist"] <= distance_thresh and gt["dist_conf"] >= distance_conf]
                     if gt_instances:
                         has_gt = True
                     if pred_instances:
@@ -198,11 +191,7 @@ def evaluate_matches(matches):
                                 if gt["instance_id"] < 1000:
                                     num_ignore += gt["intersection"]
                                 # small ground truth instances
-                                if (
-                                    gt["vert_count"] < min_region_size
-                                    or gt["med_dist"] > distance_thresh
-                                    or gt["dist_conf"] < distance_conf
-                                ):
+                                if gt["vert_count"] < min_region_size or gt["med_dist"] > distance_thresh or gt["dist_conf"] < distance_conf:
                                     num_ignore += gt["intersection"]
                             proportion_ignore = (
                                 float(num_ignore) / pred["vert_count"]
@@ -330,13 +319,8 @@ def make_pred_info(pred: dict):
 
 def assign_instances_for_scan(pred: dict, gt_file: str):
     pred_info = make_pred_info(pred)
-    # if not is_cached:
-    try:
-        gt_ids = util_3d.load_ids(gt_file)
-    except Exception as e:
-        util.print_error("unable to load " + gt_file + ": " + str(e))
-    # else:
-    #     gt_ids = cached_data
+
+    gt_ids = util_3d.load_ids(gt_file)
 
     # get gt instances
     gt_instances = util_3d.get_instances(
@@ -353,7 +337,7 @@ def assign_instances_for_scan(pred: dict, gt_file: str):
     num_pred_instances = 0
     # mask of void labels in the groundtruth
     bool_void = np.logical_not(np.in1d(gt_ids // 1000, VALID_CLASS_IDS))
-    # go thru all prediction masks
+    # go through all prediction masks
     for uuid in pred_info:
         label_id = int(pred_info[uuid]["label_id"])
         conf = pred_info[uuid]["conf"]
@@ -456,7 +440,6 @@ def write_result_file(avgs, filename):
                 )
                 + "\n"
             )
-
 
 def evaluate(preds: dict, gt_path: str, output_file: str, dataset: str):
     global CLASS_LABELS

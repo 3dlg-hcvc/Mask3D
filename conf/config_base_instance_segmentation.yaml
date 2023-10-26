@@ -28,7 +28,6 @@ general:
   # on_crops: false
 
   # scores_threshold: 0.0
-  iou_threshold: 1.0
 
   # area: 5
 

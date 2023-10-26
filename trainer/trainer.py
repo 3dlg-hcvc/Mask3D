@@ -98,7 +98,7 @@ class InstanceSegmentation(pl.LightningModule):
 
     def forward(self, x, point2segment=None, raw_coordinates=None, is_eval=False):
         with self.optional_freeze():
-            x = self.model(x, point2segment, raw_coordinates=raw_coordinates, is_eval=is_eval, )
+            x = self.model(x, point2segment, raw_coordinates=raw_coordinates, is_eval=is_eval)
         return x
 
     def training_step(self, batch, batch_idx):
