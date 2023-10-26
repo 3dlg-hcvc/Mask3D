@@ -88,7 +88,7 @@ opt["overlaps"] = np.append(np.arange(0.5, 0.95, 0.05), 0.25)
 # opt["min_region_sizes"] = np.array([100])  # 100 for s3dis, scannet
 
 #TODO
-opt["min_region_sizes"] = np.array([float("-inf")])
+opt["min_region_sizes"] = np.array([1])
 # distance thresholds [m]
 opt["distance_threshes"] = np.array([float("inf")])
 # distance confidences
