@@ -13,6 +13,7 @@ general:
   visualization_point_size: 20
   decoder_id: -1
   export: false
+  num_targets: 19
   use_dbscan: false
   ignore_class_threshold: 100
   project_name: OPMotion

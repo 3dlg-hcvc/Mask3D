@@ -105,17 +105,15 @@ def evaluate_matches(matches):
     ap = np.zeros(
         (len(dist_threshes), len(CLASS_LABELS), len(overlaps)), float
     )
-    for di, (min_region_size, distance_thresh, distance_conf) in enumerate(
-        zip(min_region_sizes, dist_threshes, dist_confs)
-    ):
+    for di, (min_region_size, distance_thresh, distance_conf) in enumerate(zip(min_region_sizes, dist_threshes, dist_confs)):
         for oi, overlap_th in enumerate(overlaps):
             pred_visited = {}
             for m in matches:
-                for p in matches[m]["pred"]:
-                    for label_name in CLASS_LABELS:
-                        for p in matches[m]["pred"][label_name]:
-                            if "uuid" in p:
-                                pred_visited[p["uuid"]] = False
+                # for p in matches[m]["pred"]:
+                for label_name in CLASS_LABELS:
+                    for p in matches[m]["pred"][label_name]:
+                        if "uuid" in p:
+                            pred_visited[p["uuid"]] = False
             for li, label_name in enumerate(CLASS_LABELS):
                 y_true = np.empty(0)
                 y_score = np.empty(0)
@@ -138,7 +136,7 @@ def evaluate_matches(matches):
                     # collect matches
                     for (gti, gt) in enumerate(gt_instances):
                         found_match = False
-                        num_pred = len(gt["matched_pred"])
+                        # num_pred = len(gt["matched_pred"])
                         for pred in gt["matched_pred"]:
                             # greedy assignments
                             if pred_visited[pred["uuid"]]:
@@ -447,10 +445,11 @@ def evaluate(preds: dict, gt_path: str, output_file: str, dataset: str):
     global ID_TO_LABEL
     global LABEL_TO_ID
     global opt
-    ID_TO_LABEL = {}
-    LABEL_TO_ID = {}
+
 
     if dataset == "opmotion":
+        ID_TO_LABEL = {}
+        LABEL_TO_ID = {}
         CLASS_LABELS = ["drawer", "door", "lid", "base"]
         VALID_CLASS_IDS = [1, 2, 3, 4]
 
