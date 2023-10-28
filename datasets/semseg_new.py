@@ -56,8 +56,9 @@ class OpmotionDataset(Dataset):
         filter_out_classes=[],
         label_offset=0,
         is_elastic_distortion=False,
+        ignore_base=False
     ):
-
+        self.ignore_base = ignore_base
         self.is_elastic_distortion = is_elastic_distortion
         self.dataset_name = dataset_name
         # self.reps_per_epoch = reps_per_epoch
@@ -80,7 +81,12 @@ class OpmotionDataset(Dataset):
 
         f = h5py.File("data/processed/opmotion/opmotion.h5", "r")
         semantic_ids = f["semantic_ids"][()] + 1
+
         instance_ids = f["instance_ids"][()]
+        if self.ignore_base:
+            selected_idx = semantic_ids == 4
+            semantic_ids[selected_idx] = 0
+            instance_ids[selected_idx] = -1
         points = f["points"][()]
         rgb = f["colors"][()]
         normal = f["normals"][()]
@@ -102,18 +108,25 @@ class OpmotionDataset(Dataset):
 
             os.makedirs(f"data/processed/opmotion/instance_gt/{mode}", exist_ok=True)
             gt_path = f"data/processed/opmotion/instance_gt/{mode}/{str(int(model_ids[i]))}.txt"
-            gt_data = semantic_ids[i] * 1000 + instance_ids[i] + 1
-            if not os.path.exists(gt_path):
 
-                np.savetxt(gt_path, gt_data.astype(np.int32), fmt="%d")
+            gt_data = semantic_ids[i] * 1000 + instance_ids[i] + 1
+
+            np.savetxt(gt_path, gt_data.astype(np.int32), fmt="%d")
 
         # if working only on classes for validation - discard others
-        self._labels = {
-            1: {"name": "drawer", "validation": True},
-            2: {"name": "door", "validation": True},
-            3: {"name": "lid", "validation": True},
-            4: {"name": "base", "validation": True}
-        }
+        if ignore_base:
+            self._labels = {
+                1: {"name": "drawer", "validation": True},
+                2: {"name": "door", "validation": True},
+                3: {"name": "lid", "validation": True}
+            }
+        else:
+            self._labels = {
+                1: {"name": "drawer", "validation": True},
+                2: {"name": "door", "validation": True},
+                3: {"name": "lid", "validation": True},
+                4: {"name": "base", "validation": True}
+            }
 
         color_mean, color_std = color_mean_std[0], color_mean_std[1]
 
@@ -152,7 +165,6 @@ class OpmotionDataset(Dataset):
         # volume and image augmentations for train
 
         if "train" in self.mode:
-
             coordinates -= coordinates.mean(0)
             # coordinates += (np.random.uniform(coordinates.min(0), coordinates.max(0)) / 2)
 
@@ -200,6 +212,9 @@ class OpmotionDataset(Dataset):
         labels = labels.astype(np.int32)
         if labels.size > 0:
             labels[:, 0] = self._remap_from_zero(labels[:, 0])
+
+        if self.ignore_base:
+            labels[:, 0][labels[:, 0] == 255] = 253
             # if not self.add_instance:
             #     # taking only first column, which is segmentation label, not instance
             #     labels = labels[:, 0].flatten()[..., None]

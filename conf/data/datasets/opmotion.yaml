@@ -1,5 +1,6 @@
 # @package data
 
+
 train_dataset:
   _target_: datasets.semseg_new.OpmotionDataset
   dataset_name: "opmotion"
@@ -31,6 +32,7 @@ train_dataset:
   crop_length: ${data.crop_length}
   filter_out_classes: []
   label_offset: 0
+  ignore_base: False
 
 validation_dataset:
   _target_: datasets.semseg_new.OpmotionDataset
@@ -53,6 +55,7 @@ validation_dataset:
   crop_length: ${data.crop_length}
   filter_out_classes: []
   label_offset: 0
+  ignore_base: False
 
 test_dataset:
   _target_: datasets.semseg_new.OpmotionDataset
@@ -75,3 +78,4 @@ test_dataset:
   crop_length: ${data.crop_length}
   filter_out_classes: []
   label_offset: 0
+  ignore_base: False
