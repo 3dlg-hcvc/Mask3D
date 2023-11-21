@@ -181,9 +181,7 @@ def eval_det_cls_wrapper(arguments):
     return (rec, prec, ap)
 
 
-def eval_det(
-    pred_all, gt_all, ovthresh=0.25, use_07_metric=False, get_iou_func=get_iou
-):
+def eval_det(pred_all, gt_all, ovthresh=0.25, use_07_metric=False, get_iou_func=get_iou):
     """Generic functions to compute precision/recall for object detection
     for multiple classes.
     Input:

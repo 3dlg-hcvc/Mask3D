@@ -12,17 +12,17 @@ general:
   save_visualizations: false
   visualization_point_size: 20
   decoder_id: -1
-  export: false
-  num_targets: 19
+  export: True
+  num_targets: 5
   use_dbscan: false
-  ignore_class_threshold: 100
+  ignore_class_threshold: 0
   project_name: OPMotion
   experiment_name: DEBUG_ABLATION
   add_instance: true
   dbscan_eps: 0.95
   dbscan_min_points: 1
 
-  export_threshold: 0.0001
+  export_threshold: 0
 
   reps_per_epoch: 1
 
@@ -34,7 +34,7 @@ general:
 
   # eval_inner_core: -1 # disabled
 
-  topk_per_image: 100
+  topk_per_image: -1
 
   ignore_mask_idx: []
 
