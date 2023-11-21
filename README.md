@@ -113,9 +113,10 @@ Mask3D # project root
 ### Training and testing
 Train Mask3D on the opmotion dataset:
 ```bash
+wandb login
+
 # train with base part
 python main_instance_segmentation.py data/datasets=opmotion model.num_queries=10 data.batch_size=32
-
 
 # train without base part
 python main_instance_segmentation.py data/datasets=opmotion model.num_queries=10 data.batch_size=32 data.train_dataset.num_labels=3 data.validation_dataset.num_labels=3 data.test_dataset.num_labels=3 general.num_targets=4
