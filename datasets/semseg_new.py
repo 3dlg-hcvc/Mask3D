@@ -1,25 +1,26 @@
-import logging
-import os.path
-#from itertools import product
-from pathlib import Path
-from random import random, sample, uniform
-from typing import List, Optional, Tuple, Union
-from random import choice
-import h5py
 # from copy import deepcopy
 # from random import randrange
 import json
+import logging
+import os.path
+
+#from itertools import product
+from pathlib import Path
+from random import choice, random, sample, uniform
+from typing import List, Optional, Tuple, Union
+
+import albumentations as A
+import h5py
+import numpy as np
+import scipy
+import volumentations as V
+from torch.utils.data import Dataset
 
 # import numpy
 # import torch
 
-import albumentations as A
-import numpy as np
-import scipy
-import volumentations as V
 # import yaml
 
-from torch.utils.data import Dataset
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +103,7 @@ class OpmotionDataset(Dataset):
             if str(int(model_ids[i])) not in split_ids:
                 continue
             self._data.append({
-                "data": np.hstack((points[i], rgb[i], normal[i], semantic_ids[i][..., np.newaxis], instance_ids[i][..., np.newaxis])),
+                "data": np.hstack((points[i].reshape(-1, 3), rgb[i].reshape(-1, 3), normal[i].reshape(-1, 3), semantic_ids[i][..., np.newaxis], instance_ids[i][..., np.newaxis])),
                 "model_id": str(int(model_ids[i]))
             })
 
@@ -206,7 +207,10 @@ class OpmotionDataset(Dataset):
 
         # normalize color information
         pseudo_image = color.astype(np.uint8)[np.newaxis, :, :]
-        color = np.squeeze(self.normalize_color(image=pseudo_image)["image"])
+        if "normalize_color" in dir(self):
+            color = np.squeeze(self.normalize_color(image=pseudo_image)["image"])
+        else:
+            color = np.squeeze(pseudo_image)
 
         # prepare labels and map from 0 to 20(40)
         labels = labels.astype(np.int32)

@@ -1,17 +1,31 @@
+import colorsys
+import functools
 import gc
+import math
+import os
+import random
+import shutil
+import statistics
+from collections import defaultdict
 from contextlib import nullcontext
 from pathlib import Path
-import statistics
-import shutil
-import os
-import math
+from typing import List, Tuple
+
+import hydra
+import numpy as np
+import pytorch_lightning as pl
 import pyviz3d.visualizer as vis
-from torch_scatter import scatter_mean
+import torch
+
 # import matplotlib
 from benchmark.evaluate_semantic_instance import evaluate
-from collections import defaultdict
+from models.metrics import IoU
 from sklearn.cluster import DBSCAN
+from torch_scatter import scatter_mean
 from utils.votenet_utils.eval_det import eval_det
+
+import MinkowskiEngine as ME
+
 # from datasets.scannet200.scannet200_splits import (
 #     HEAD_CATS_SCANNET_200,
 #     TAIL_CATS_SCANNET_200,
@@ -19,16 +33,6 @@ from utils.votenet_utils.eval_det import eval_det
 #     VALID_CLASS_IDS_200_VALIDATION,
 # )
 
-import hydra
-import MinkowskiEngine as ME
-import numpy as np
-import pytorch_lightning as pl
-import torch
-from models.metrics import IoU
-import random
-import colorsys
-from typing import List, Tuple
-import functools
 
 
 @functools.lru_cache(20)
@@ -56,6 +60,8 @@ class InstanceSegmentation(pl.LightningModule):
             self.mask_type = "segment_mask"
         else:
             self.mask_type = "masks"
+
+        self.inference_method = config.general.inference_method
 
         self.eval_on_segments = config.general.eval_on_segments
 
@@ -179,10 +185,10 @@ class InstanceSegmentation(pl.LightningModule):
             real_id = -1
             for instance_id in range(len(pred_classes)):
                 real_id += 1
-                pred_class = pred_classes[instance_id]
+                pred_class = pred_classes[instance_id] - 1
                 score = scores[instance_id]
                 mask = pred_masks[:, instance_id].astype("uint8")
-
+                # 
                 if score > self.config.general.export_threshold:
                     # reduce the export size a bit. I guess no performance difference
                     np.savetxt(f"{pred_mask_path}/{file_name}_{real_id}.txt", mask, fmt="%d")
@@ -382,7 +388,23 @@ class InstanceSegmentation(pl.LightningModule):
         if raw_coordinates.shape[0] == 0:
             return 0.0
 
-        data = ME.SparseTensor(coordinates=data.coordinates, features=data.features, device=self.device)
+        """print(np.shape(data.coordinates), np.shape(data.features))
+        print(data.coordinates[0], data.coordinates[1])
+        print(np.shape(data.coordinates[:, 0].cpu().numpy()))
+        print(np.unique(data.coordinates[:, 0].cpu().numpy()))"""
+
+        if self.inference_method == "onepass":
+            data = ME.SparseTensor(coordinates=data.coordinates, features=data.features, device=self.device)
+            output = self.forward(
+            data,
+            point2segment=[target[i]["point2segment"] for i in range(len(target))],
+            raw_coordinates=raw_coordinates,
+            is_eval=True,
+            )
+        elif self.inference_method == "batches":
+            point_num = np.shape(data.coordinates.cpu().numpy())[0]
+            
+
 
         # try:
         output = self.forward(
@@ -459,7 +481,6 @@ class InstanceSegmentation(pl.LightningModule):
             data_idx,
             backbone_features=None
         )
-
         if self.config.data.test_mode != "test":
             return {f"val_{k}": v.detach().cpu().item() for k, v in losses.items()}
         else:
@@ -773,7 +794,7 @@ class InstanceSegmentation(pl.LightningModule):
                     self.decoder_id,
                 )
 
-    def eval_instance_epoch_end(self):
+    def on_validation_epoch_end(self):
         log_prefix = f"val"
         ap_results = {}
 
@@ -838,6 +859,7 @@ class InstanceSegmentation(pl.LightningModule):
 
             ap_results = {key: 0.0 if math.isnan(score) else score for key, score in ap_results.items()}
             logged_results = {key: 0.0 if math.isnan(score) else score for key, score in logged_results.items()}
+
         except (IndexError, OSError) as e:
             print("NO SCORES!!!")
             ap_results[f"{log_prefix}_mean_ap"] = 0.0
@@ -863,7 +885,7 @@ class InstanceSegmentation(pl.LightningModule):
         self.bbox_preds = dict()
         self.bbox_gt = dict()
 
-    def test_epoch_end(self, outputs):
+    def on_test_epoch_end(self, outputs):
         if self.config.general.export:
             return
 
@@ -881,6 +903,7 @@ class InstanceSegmentation(pl.LightningModule):
         dd["val_mean_loss_dice"] = statistics.mean([item for item in [v for k, v in tmp_dd.items() if "loss_dice" in k]])
 
         self.log_dict(dd)
+        self.eval_instance_epoch_end()
 
     def configure_optimizers(self):
         optimizer = hydra.utils.instantiate(self.config.optimizer, params=self.parameters())

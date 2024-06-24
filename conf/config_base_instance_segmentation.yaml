@@ -17,12 +17,13 @@ general:
   use_dbscan: false
   ignore_class_threshold: 0
   project_name: OPMotion
-  experiment_name: DEBUG_ABLATION
+  experiment_name: improved-partnetsim-1M
   add_instance: true
   dbscan_eps: 0.95
   dbscan_min_points: 1
+  inference_method: "onepass"
 
-  export_threshold: 0
+  export_threshold: 0.7
 
   reps_per_epoch: 1
 
