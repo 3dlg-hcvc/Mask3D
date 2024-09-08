@@ -92,7 +92,7 @@ class OpmotionDataset(Dataset):
         rgb = f["colors"][()]
         normal = f["normals"][()]
         model_ids = f["model_ids"][()]
-        with open("data/processed/opmotion/data.json" ,"r") as f:
+        with open("data/processed/opmotion/data.json", "r") as f:
             tmp_mode = mode
             if mode == "validation":
                 tmp_mode = "val"
@@ -100,15 +100,16 @@ class OpmotionDataset(Dataset):
         for i, model_id in enumerate(model_ids):
             # database_path = Path(database_path)
             # self._data.extend(self._load_yaml(database_path / f"{mode}_database.yaml"))
-            if str(int(model_ids[i])) not in split_ids:
+            model_id = model_ids[i].decode("utf-8")
+            if model_id not in split_ids:
                 continue
             self._data.append({
                 "data": np.hstack((points[i].reshape(-1, 3), rgb[i].reshape(-1, 3), normal[i].reshape(-1, 3), semantic_ids[i][..., np.newaxis], instance_ids[i][..., np.newaxis])),
-                "model_id": str(int(model_ids[i]))
+                "model_id": model_id
             })
 
             os.makedirs(f"data/processed/opmotion/instance_gt/{mode}", exist_ok=True)
-            gt_path = f"data/processed/opmotion/instance_gt/{mode}/{str(int(model_ids[i]))}.txt"
+            gt_path = f"data/processed/opmotion/instance_gt/{mode}/{model_id}.txt"
 
             gt_data = semantic_ids[i] * 1000 + instance_ids[i] + 1
 

@@ -1,16 +1,17 @@
-import torch
 import hydra
-import torch.nn as nn
-import MinkowskiEngine.MinkowskiOps as me
-from MinkowskiEngine.MinkowskiPooling import MinkowskiAvgPooling
 import numpy as np
-from torch.nn import functional as F
+import torch
+import torch.nn as nn
 from models.modules.common import conv
+from models.modules.helpers_3detr import GenericMLP
 from models.position_embedding import PositionEmbeddingCoordsSine
 from third_party.pointnet2.pointnet2_utils import furthest_point_sample
-from models.modules.helpers_3detr import GenericMLP
-from torch_scatter import scatter_mean, scatter_max, scatter_min
 from torch.cuda.amp import autocast
+from torch.nn import functional as F
+from torch_scatter import scatter_max, scatter_mean, scatter_min
+
+import MinkowskiEngine.MinkowskiOps as me
+from MinkowskiEngine.MinkowskiPooling import MinkowskiAvgPooling
 
 
 class Mask3D(nn.Module):
@@ -453,7 +454,6 @@ class Mask3D(nn.Module):
 
                 predictions_class.append(output_class)
                 predictions_mask.append(outputs_mask)
-
         if self.train_on_segments:
             output_class, outputs_mask = self.mask_module(
                 queries,

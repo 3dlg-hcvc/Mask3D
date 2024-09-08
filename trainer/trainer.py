@@ -95,7 +95,7 @@ class InstanceSegmentation(pl.LightningModule):
         self.bbox_gt = dict()
 
         self.criterion = hydra.utils.instantiate(config.loss, matcher=matcher, weight_dict=weight_dict)
-
+        self.config = config
         # metrics
         self.confusion = hydra.utils.instantiate(config.metrics)
         self.iou = IoU()
@@ -885,25 +885,50 @@ class InstanceSegmentation(pl.LightningModule):
         self.bbox_preds = dict()
         self.bbox_gt = dict()
 
-    def on_test_epoch_end(self, outputs):
-        if self.config.general.export:
-            return
+    def on_test_epoch_end(self):
+        # Aggregate results from all test steps
+        all_preds = self.preds
+        all_bbox_preds = self.bbox_preds
+        all_bbox_gt = self.bbox_gt
 
-        self.eval_instance_epoch_end()
+        # Clear stored predictions to free up memory
+        self.preds.clear()
+        self.bbox_preds.clear()
+        self.bbox_gt.clear()
 
-        dd = defaultdict(list)
-        for output in outputs:
-            for key, val in output.items():  # .items() in Python 3.
-                dd[key].append(val)
+        for decoder_id in all_preds.keys():
+            for k in all_preds[decoder_id].keys():
+                all_preds[decoder_id][k] = torch.cat(all_preds[decoder_id][k])
 
-        tmp_dd = {k: statistics.mean(v) for k, v in dd.items()}
-        dd = {}
-        dd["val_mean_loss_ce"] = statistics.mean([item for item in [v for k, v in tmp_dd.items() if "loss_ce" in k]])
-        dd["val_mean_loss_mask"] = statistics.mean([item for item in [v for k, v in tmp_dd.items() if "loss_mask" in k]])
-        dd["val_mean_loss_dice"] = statistics.mean([item for item in [v for k, v in tmp_dd.items() if "loss_dice" in k]])
+        for k in all_bbox_preds.keys():
+            all_bbox_preds[k] = torch.cat(all_bbox_preds[k])
 
-        self.log_dict(dd)
-        self.eval_instance_epoch_end()
+        for k in all_bbox_gt.keys():
+            all_bbox_gt[k] = torch.cat(all_bbox_gt[k])
+
+        for decoder_id in all_preds.keys():
+            if self.config.general.save_visualizations:
+                # Visualization code here (if needed)
+                pass
+
+            # Evaluation code
+            eval_dict = evaluate(
+                all_preds[decoder_id],
+                all_bbox_preds,
+                all_bbox_gt,
+                self.validation_dataset,
+                self.config,
+                self.current_epoch,
+                decoder_id,
+            )
+
+            ap_50 = eval_dict["all_ap_50%"]
+            self.log(f"val_ap_50_{decoder_id}", ap_50, sync_dist=True)
+
+            if decoder_id == self.decoder_id:
+                for k, v in eval_dict.items():
+                    if isinstance(v, float):
+                        self.log(f"val_{k}", v, sync_dist=True)
 
     def configure_optimizers(self):
         optimizer = hydra.utils.instantiate(self.config.optimizer, params=self.parameters())
@@ -915,10 +940,13 @@ class InstanceSegmentation(pl.LightningModule):
         return [optimizer], [scheduler_config]
 
     def prepare_data(self):
-        self.train_dataset = hydra.utils.instantiate(self.config.data.train_dataset)
         self.validation_dataset = hydra.utils.instantiate(self.config.data.validation_dataset)
         self.test_dataset = hydra.utils.instantiate(self.config.data.test_dataset)
-        self.labels_info = self.train_dataset.label_info
+        if self.config.general.train_mode:
+            self.train_dataset = hydra.utils.instantiate(self.config.data.train_dataset)
+            self.labels_info = self.train_dataset.label_info
+        else:
+            self.labels_info = self.validation_dataset.label_info
 
     def train_dataloader(self):
         c_fn = hydra.utils.instantiate(self.config.data.train_collation)
